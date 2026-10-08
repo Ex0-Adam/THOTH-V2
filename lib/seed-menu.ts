@@ -73,6 +73,16 @@ async function main() {
       showInFooter: true, // เฉพาะ Footer
     },
     {
+      label: 'เอกสาร',
+      url: 'https://thoth-documents.vercel.app/',
+      order: 10,
+      isVisible: true,
+      isExternal: true, // ลิงค์ภายนอก
+      showInNavbar: true,
+      showInSidebar: false,
+      showInFooter: true,
+    },
+    {
       label: 'GitHub',
       url: 'https://github.com',
       order: 8,
