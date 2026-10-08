@@ -1,0 +1,80 @@
+name: Release to GitHub
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'v*-*'  # Captures v1.0.0-beta.1, v1.0.0-rc.1, etc.
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Extract Version from Tag
+        id: version
+        run: |
+          TAG=${{ github.ref }}
+          VERSION=${TAG#refs/tags/v}
+          IS_BETA_OR_RC=$(echo "$VERSION" | grep -E '(beta|rc|alpha|dev)' && echo 'true' || echo 'false')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_BETA_OR_RC" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          IS_PRERELEASE=${{ steps.version.outputs.is_prerelease }}
+          
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            NOTES="## 🟡 Beta / Pre-Release\n\n**These are pre-release builds.** Use in staging/testing environments only.\n\nSee [RELEASE_NOTES.md](./RELEASE_NOTES.md) for detailed information.\n\nSee [CHANGELOG.md](./CHANGELOG.md) for version history."
+          else
+            NOTES="## Production Release\n\nSee [RELEASE_NOTES.md](./RELEASE_NOTES.md) for features and changes.\n\nSee [CHANGELOG.md](./CHANGELOG.md) for full version history."
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.release_notes.outputs.notes }}
+          prerelease: ${{ steps.version.outputs.is_prerelease }}
+          draft: false
+          files: |
+            package.json
+            CHANGELOG.md
+            RELEASE_NOTES.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Release Success
+        run: |
+          echo "✅ Release v${{ steps.version.outputs.version }} created successfully!"
+          echo "Tag: v${{ steps.version.outputs.version }}"
+          echo "Pre-release: ${{ steps.version.outputs.is_prerelease }}"
+          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
