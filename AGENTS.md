@@ -16,7 +16,7 @@
 | ชนิด | Headless CMS + Admin Console + Public pages ใน Next.js App Router เดียว |
 | Stack | Next.js **16.2.0**, React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
-| Git | **ไม่ใช่ git repo** (ตรวจ `git status` = fatal, ไม่มี `.git`, ไม่มี remote) |
+| Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
 | Test | **มีแล้ว (2026-10-08):** `npm test` = `node --test tests/*.test.mjs` (route-policy + session) — 30 tests |
 | Python | ไม่มี (สอดคล้องกฎ #6 ✅) |
 
@@ -109,7 +109,7 @@ THOTH/
 
 18. ✅ **เอกสารเก่า/ขยะถูกลบแล้ว (2026-10-09):** 16 ไฟล์ = QA_×4, TESTING_EXECUTION_PLAN, QA_ACTION_PLAN, COMPLETION_SUMMARY, FINAL_STATUS, PRODUCTION_CHECKLIST, RELEASE_CHECKLIST, BETA_RELEASE_COMMANDS, SUPPORT_PROCESS, BUG_TRACKING, STRUCTURE.md, GIT_COMMANDS.txt, `desktop.ini`, `README.html` (สำรองชั่วคราวที่ `/tmp/opencode/thoth-trash-2026-10-09/`) — เดิมหลายไฟล์ขัดกับความจริงในโค้ด (วันที่ 11 เม.ย. 2026) → เหลือ root `.md` 11 ไฟล์: AGENTS, README (เขียนใหม่ 2026-10-09), CHANGELOG, RELEASE_NOTES, DEPLOYMENT, ENV_SETUP, INSTALLATION_GUIDE, UPGRADE_GUIDE, MANUAL, QUICK_REFERENCE, FRONTEND_STANDARD
 19. ✅ ไฟล์ขยะ (`desktop.ini`, `README.html`) ลบแล้ว — ดูข้อ 18
-20. **ยังไม่มี git repo** → README/workflow ที่อ้าง `git push` ยังใช้ไม่ได้จนกว่าจะ init repo + remote (`GIT_COMMANDS.txt` ถูกลบแล้ว ไม่ต้องอ้าง)
+20. ✅ **มี git repo แล้ว (2026-10-09):** init + commit แรก `a6eeca1` (164 ไฟล์) + remote `origin`/`gitea` ตั้งแล้ว — **backup ลงดิสที่ `/run/media/neon13/F97B-F989/Ex0-Adam/THOTH-V2` ครบแล้ว (repo + AGENTS.md + `.env*` ทั้งหมด, md5 ตรง) → คำสั่งพี่ฆัง 2026-10-09: ไม่ต้อง push ไป GITEA** (push ถูก Gitea ปฏิเสธด้วย — บัญชี credential ไม่มีสิทธิ์ write; ยุติไว้ตามคำสั่ง)
 
 ---
 
@@ -118,7 +118,7 @@ THOTH/
 ### ก่อนเริ่มงาน
 1. ยืนยัน `pwd` อยู่ที่ THOTH เสมอ และอ่านไฟล์นี้ + `~/.config/opencode/AGENTS.md`
 2. ถ้าต้องแก้หลายจุด/หลายภาคส่วน → **ทวนขอบเขตสั้นๆ แล้วรอบพี่ฆังอนุมัติก่อน** (Section 3 ข้อ 1 ของกฎส่วนกลาง)
-3. ห้ามแตะ/สร้าง git remote เอง — ถ้าต้อง push ให้รายงานก่อน (ฌอน: push ได้เฉพาะ `gitea`; ตอนนี้ **ไม่มี remote เลย** → หยุดแล้วรายงาน)
+3. **ไม่ต้อง push ไป gitea แล้ว** (คำสั่งพี่ฆัง 2026-10-09 — บันทึกลงดิสครบที่ `F97B-F989/Ex0-Adam/THOTH-V2`); remote มี 2 ตัว: `origin` = GitHub (**ห้าม push — พี่ฆัง push เอง**, กฎ #5) + `gitea` = LAN — ถ้าจะ push อะไรเพิ่มให้รายงานก่อนเสมอ
 
 ### ขณะทำงาน
 4. **ห้ามพิมพ์ค่าเต็มจาก `.env.local`** ออกทาง terminal/chat เด็ดขาด (กฎ #3) — อนุญาตแค่บอก "มี/ไม่มี key" หรือความยาวค่า
@@ -136,7 +136,7 @@ npm run lint         # ต้องไม่แย่ไปกว่า baseline
 
 ### สิ่งที่ห้ามทำโดยไม่สั่ง
 - ห้าม `rm -rf` / ย้ายโฟลเดอร์ (รวมถึง `frontend/`) โดยไม่ได้รับอนุมัติ — แม้จะเป็น dead code
-- ห้าม commit/push (ไม่มี repo; และต้องสั่งชัดเจน)
+- **ห้าม push ทุกกรณี** — บันทึกลงดิสแล้ว **ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09); `origin`/GitHub = พี่ฆัง push เอง; commit ใหม่ต้องสั่งชัดเจน
 - ห้ามแก้ `.env.local`, `LICENSE`, `package-lock.json` แบบไม่จำเป็น
 - ห้ามเปิดใช้ `broadcast` ของ LINE MCP โดยไม่ขออนุมัติ
 
@@ -187,4 +187,4 @@ npm run lint         # ต้องไม่แย่ไปกว่า baseline
 
 ## 7. สรุปสถานะ 1 บรรทัด
 
-> **โค้ด build/typecheck/tests ผ่าน (npm test = 30 ผ่าน 2026-10-09) แต่ยังไม่พร้อมผลิต:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, ไม่มี git — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+> **โค้ด build/typecheck/tests ผ่าน (npm test = 30 ผ่าน 2026-10-09) แต่ยังไม่พร้อมผลิต:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, git = commit แรกแล้ว + backup ลงดิส (**ไม่ต้อง push ไป gitea**) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
