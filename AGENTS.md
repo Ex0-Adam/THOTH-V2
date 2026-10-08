@@ -17,6 +17,7 @@
 | Stack | Next.js **16.2.0**, React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
 | Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
+| Vercel | **ตรวจ 2026-10-09:** CLI 60.1.3 login = **`ex0-adam`** (scope `adam-project` · เปลี่ยนจาก `insurgent-dev` ด้วย browser login) · มี project **`thoth-v2`** (id `prj_Prcs7H2WKxPNld0b60Zp9XnQNSYl`) แต่ **ยังไม่มี deployment เลย** (`latestProductionUrl: --`, `vercel ls` = No deployments) · ไม่มี `.vercel/` link ใน repo · `vercel.json` อ้าง secret `@database_url` / `@app_url` / `@backend_url` — ยังไม่ยืนยันว่าตั้งใน project ใหม่แล้ว |
 | Test | **มีแล้ว (2026-10-08):** `npm test` = `node --test tests/*.test.mjs` (route-policy + session) — 30 tests |
 | Python | ไม่มี (สอดคล้องกฎ #6 ✅) |
 
