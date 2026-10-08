@@ -2,7 +2,7 @@
 
 **Headless CMS + Admin Console + หน้าเว็บสาธารณะ สำหรับขายโมดูลและเทมเพลต**
 
-`v1.0.0-beta.1` · Next.js 16 · TypeScript · Prisma · PostgreSQL
+`v2.0.0-beta.1` · Next.js 16 · TypeScript · Prisma · PostgreSQL
 
 > **โมเดลธุรกิจ:** THOTH เป็น open source — รายได้มาจากการ**ขายโมดูลและหน้าเว็บ**
 > ดังนั้น API อ่านข้อมูลสาธารณะ (เช่น Projects) เปิดกว้างโดยเจตนา — ดูหัวข้อ "นโยบายสำคัญ" ล่างสุด

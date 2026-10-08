@@ -1,6 +1,6 @@
-# Release Notes - v1.0.0-beta.1
+# Release Notes - v2.0.0-beta.1
 
-**Release Date:** April 11, 2026
+**Release Date:** October 9, 2026
 
 **Status:** 🟡 **BETA - EARLY ACCESS** (Not for Production)
 
@@ -46,7 +46,7 @@ Read more about the developer's background and projects in [README.md](./README.
 
 ---
 
-## ✨ What's Included in v1.0.0-beta.1
+## ✨ What's Included in v2.0.0-beta.1
 
 ### 🚀 Core Features
 
@@ -260,20 +260,20 @@ Found a bug or have feedback? Please help us improve!
 ## 📦 Downloads & Installation
 
 ### Latest Release
-**v1.0.0-beta.1** - [Download on GitHub](https://github.com/yourusername/micro-headless-cms/releases/tag/v1.0.0-beta.1)
+**v2.0.0-beta.1** - [Download on GitHub](https://github.com/yourusername/micro-headless-cms/releases/tag/v2.0.0-beta.1)
 
 ### Install from Source
 ```bash
 git clone https://github.com/yourusername/micro-headless-cms.git
 cd micro-headless-cms
-git checkout v1.0.0-beta.1
+git checkout v2.0.0-beta.1
 npm install
 ```
 
 ### With Docker
 ```bash
-docker pull yourusername/micro-headless-cms:1.0.0-beta.1
-docker run -e DATABASE_URL=postgresql://... yourusername/micro-headless-cms:1.0.0-beta.1
+docker pull yourusername/micro-headless-cms:2.0.0-beta.1
+docker run -e DATABASE_URL=postgresql://... yourusername/micro-headless-cms:2.0.0-beta.1
 ```
 
 ---
@@ -291,8 +291,8 @@ Thank you for being an early adopter! Your feedback is invaluable in helping us 
 ---
 
 **Release Information**
-- **Version**: 1.0.0-beta.1
-- **Release Date**: April 11, 2026
+- **Version**: 2.0.0-beta.1
+- **Release Date**: October 9, 2026
 - **Status**: Beta (Early Access)
 - **Support**: GitHub Issues only
 - **License**: Check LICENSE.md file

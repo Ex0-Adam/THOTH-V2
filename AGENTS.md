@@ -12,7 +12,7 @@
 | หัวข้อ | ข้อเท็จจริง (ตรวจจากไฟล์จริง) |
 | --- | --- |
 | ชื่อ | `thoth` (branding ในโค้ด/README ยังเขียน "Micro Headless CMS" / "Micro Headless-CMS-Product") |
-| เวอร์ชัน | `1.0.0-beta.1` (release date ในเอกสาร: 11 เม.ย. 2026) |
+| เวอร์ชัน | `2.0.0-beta.1` (bump จาก 1.0.0-beta.1 เมื่อ 2026-10-09; release เดิม: 11 เม.ย. 2026) |
 | ชนิด | Headless CMS + Admin Console + Public pages ใน Next.js App Router เดียว |
 | Stack | Next.js **16.2.0**, React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |

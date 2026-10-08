@@ -5,6 +5,26 @@ All notable changes to Micro Headless CMS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-beta.1] - 2026-10-09
+
+### 🔒 Security
+- **Signed session cookies** — session ออกเป็น signed token ผ่าน `SESSION_SECRET` (ขาดแล้ว throw)
+- **Write API guards** — `guardApiSession` ครอบ API route ที่เขียนข้อมูลทั้งหมด (21 routes)
+- **Fail-closed cron auth** — `isCronAuthorized` ไม่มี fail-open อีกต่อไป
+- **Env hygiene** — `.env.example` sanitize ค่าจริงออกแล้ว; `.gitignore` กัน `.env*` / `public/uploads/` / `*.log`
+
+### 🧪 Testing
+- **30 automated tests** — `node --test tests/*.test.mjs` (route-policy + session) ผ่าน 100%
+
+### 📚 Documentation
+- **README.md เขียนใหม่** — architecture แยก CMS / `apps/web`, นโยบายธุรกิจ, คำสั่งจริงที่รันตรวจแล้ว
+- **จัดระเบียบราก** — ลบเอกสารเก่า/ขยะ 16 ไฟล์ เหลือ `.md` 11 ไฟล์
+- **`AGENTS.md` + `docs/UPDATE_PLAN_2026-10.md` + `docs/SPLIT_HEADLESS_PLAN_2026-10.md`** สร้าง/อัปเดต
+
+### 🏗️ Repository
+- **Git initialized** — commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub) + `gitea` (LAN)
+- **Version 2.0.0-beta.1** — repo ตั้งชื่อ `THOTH-V2` · backup ลงดิสเรียบร้อย
+
 ## [1.0.0-beta.1] - 2026-04-11
 
 ### ✨ Added

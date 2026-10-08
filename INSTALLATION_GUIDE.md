@@ -1,7 +1,7 @@
 # Micro Headless CMS - Installation Manual
 
-**Version**: v1.0.0-beta.1  
-**Last Updated**: April 2026  
+**Version**: v2.0.0-beta.1  
+**Last Updated**: October 2026  
 **Status**: ✅ Production Ready
 
 ---
@@ -599,5 +599,5 @@ NEXT_PUBLIC_API_URL=https://yourdomain.com/api
 
 See LICENSE file for details.
 
-**Last Updated**: April 2026  
-**Version**: v1.0.0-beta.1
+**Last Updated**: October 2026  
+**Version**: v2.0.0-beta.1

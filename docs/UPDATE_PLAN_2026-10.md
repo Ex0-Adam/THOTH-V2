@@ -102,10 +102,10 @@
 
 ## เฟส 7 — Git / Release (ต้องสั่งก่อนเสมอ)
 
-1. **ยังไม่มี repo** — ต้องให้พี่ฆังสั่งว่าจะ `git init` + remote ชื่ออะไร (ห้ามฌอนสร้างเอง)
-2. ตรวจ `.gitignore` (มี `.env*` อยู่แล้ว ✅) — ยืนยัน `.env.local` ไม่หลุดก่อน commit แรก
-3. งานค้าง: ปรับ `CHANGELOG.md` / `RELEASE_NOTES.md` ให้ตรงของจริงก่อนปล่อย beta ถัดไป
-4. สรุป version: ยัง `1.0.0-beta.1` — ถ้าแก้ P0 เสร็จ ควรขึ้นเป็น `beta.2`
+1. ✅ **มี repo แล้ว** — init + commit แรก `a6eeca1` (2026-10-09) · remote `origin` (GitHub) + `gitea` (LAN) · บันทึกลงดิสแล้ว (ไม่ต้อง push)
+2. ✅ ตรวจ `.gitignore` แล้ว — `.env.local` ไม่หลุด (commit แรก verify แล้ว)
+3. ✅ ปรับ `CHANGELOG.md` (entry `2.0.0-beta.1`) / `RELEASE_NOTES.md` (bump เป็น v2) แล้ว 2026-10-09
+4. ✅ version ปัจจุบัน: **`2.0.0-beta.1`** (bump แล้ว 2026-10-09 ตามคำสั่ง — ข้าม beta.2)
 
 ---
 
