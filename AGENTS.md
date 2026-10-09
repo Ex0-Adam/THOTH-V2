@@ -28,7 +28,7 @@ npm ci                 # ติดตั้ง (npm 12 จะ block install-scri
 npx prisma generate    # บังคับรันเองหลัง npm ci (postinstall ถูก block)
 npm run dev            # http://localhost:3000
 npm run build          # ✅ BUILD_EXIT=0 (ตรวจ 2026-10-08)
-npm run lint           # ❌ FAIL — 30 errors / 22 warnings (ตรวจ 2026-10-08)
+npm run lint           # ✅ PASS — 0 errors / 20 warnings (ตรวจ 2026-10-09)
 npx tsc --noEmit       # ✅ exit 0 (ตรวจ 2026-10-08)
 npx prisma db push     # sync schema (ไม่มี migrations folder — ใช้ db push ล้วน)
 npx prisma studio
@@ -103,7 +103,7 @@ THOTH/
 13. **ตัวแปรใน `.env.example` ที่โค้ดไม่ได้ใช้ (`SESSION_SECRET` ตัดออกแล้ว — ถูกใช้จริง):** `SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `AWS_*`
 14. **`vercel.json` มี key ที่ไม่อยู่ใน schema ปัจจุบันของ Vercel** (เทียบ docs `vercel.com/docs/project-configuration` 2026-08-25): `env`, `nodeVersion`, `buildEnvironment` **ไม่ใช่ property ที่รองรับ** → ควรย้ายไป Project Settings / `.env`
 15. **Dependencies ที่ไม่ถูก import ที่ไหนเลย (ตรวจแล้ว 0 จุด):** `admin-lte`, `bootstrap`, `jquery`, `popper.js`, `@uiw/react-markdown-preview`, `@uiw/react-md-editor` (6 ตัว — editor จริงคือ `components/admin/rich-text-editor.tsx` ที่เขียนเองด้วย contentEditable)
-16. **`npm run lint` FAIL 30 errors** — ส่วนใหญ่อยู่ใน `frontend/lib/api.ts` (`no-explicit-any`), `frontend/components/ErrorBoundary.tsx`, `modules/staff-member/components/staff-admin.tsx`; CI ใน `.github/workflows/release.yml` ใช้ `continue-on-error: true` → **ปล่อยผ่าน**
+16. ✅ **ปิดแล้ว:** `npm run lint` ผ่าน — 0 errors / 20 warnings (ตรวจ 2026-10-09); CI ใน `.github/workflows/release.yml` ยังใช้ `continue-on-error: true`
 17. **ไม่มี `engines` ใน `package.json`** ทั้งที่ README ระบุ Node 20+
 
 ### P3 — เอกสาร / ขยะ (จัดระเบียบแล้ว 2026-10-09)
@@ -131,7 +131,7 @@ THOTH/
 ```bash
 npx tsc --noEmit     # ต้อง exit 0
 npm run build        # ต้อง exit 0
-npm run lint         # ต้องไม่แย่ไปกว่า baseline (ตอนนี้ 30 errors / 22 warnings)
+npm run lint         # ต้อง exit 0 และไม่มี errors (ตรวจ 2026-10-09: 0 errors / 20 warnings)
 ```
 แล้วตรวจสอบไฟล์จริงบนดิสก์ก่อนรายงานว่า "เขียนเสร็จ"
 

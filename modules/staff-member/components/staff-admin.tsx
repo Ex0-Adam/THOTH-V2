@@ -448,7 +448,7 @@ export default function StaffAdmin() {
             </div>
             
             {form.repos.length === 0 && (
-              <p className="text-xs text-slate-400 italic py-4 text-center">No repositories added yet. Click "+ Add Repository" to start your portfolio.</p>
+              <p className="text-xs text-slate-400 italic py-4 text-center">No repositories added yet. Click &quot;+ Add Repository&quot; to start your portfolio.</p>
             )}
           </div>
 
@@ -605,4 +605,3 @@ const inputClassName =
 
 const subInputClassName =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
-

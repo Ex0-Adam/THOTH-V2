@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import Header from '@/frontend/components/Header';
 import { Dashboard, ApiResponse, DashboardStats } from '@/frontend/lib/api';
 
@@ -173,24 +174,24 @@ async function DashboardContent() {
                 Quick Actions
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a
+                <Link
                   href="/admin/products"
                   className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
                 >
                   Manage Products
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/admin/projects"
                   className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-center"
                 >
                   Manage Projects
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/admin"
                   className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-center"
                 >
                   Go to Admin
-                </a>
+                </Link>
               </div>
             </div>
 

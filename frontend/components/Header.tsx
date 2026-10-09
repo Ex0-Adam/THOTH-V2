@@ -82,6 +82,11 @@ export default function Header() {
               isActive={isActive('/products')}
             />
             <HeaderNavLink
+              href="https://github.com/Ex0-Adam/THOTH-V2/releases"
+              label="Releases"
+              isActive={false}
+            />
+            <HeaderNavLink
               href="/dashboard"
               label="Dashboard"
               isActive={isActive('/dashboard')}

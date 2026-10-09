@@ -193,7 +193,7 @@ export default function AutomationPage() {
           <p className="text-xs font-black uppercase tracking-[0.32em] text-indigo-500">Automation</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950">AI Auto Post</h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            Store the user's AI Studio key, define evergreen topics, and let the CMS create new page entries on a daily schedule without hardwiring frontend logic into the core.
+            Store the user&apos;s AI Studio key, define evergreen topics, and let the CMS create new page entries on a daily schedule without hardwiring frontend logic into the core.
           </p>
         </div>
       </header>

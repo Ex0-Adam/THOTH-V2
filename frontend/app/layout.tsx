@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { ReactNode } from 'react';
-import Header from '@/frontend/components/Header';
 import '@/frontend/styles/globals.css';
 
 /**
@@ -172,10 +172,10 @@ export default function FrontendLayout({
                 <div>
                   <h4 className="text-white font-semibold mb-4">Product</h4>
                   <ul className="space-y-2 text-sm">
-                    <li><a href="/" className="hover:text-white transition-colors">Home</a></li>
-                    <li><a href="/products" className="hover:text-white transition-colors">Products</a></li>
-                    <li><a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a></li>
-                    <li><a href="/admin" className="hover:text-white transition-colors">Admin Panel</a></li>
+                    <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+                    <li><Link href="/products" className="hover:text-white transition-colors">Products</Link></li>
+                    <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                    <li><Link href="/admin" className="hover:text-white transition-colors">Admin Panel</Link></li>
                   </ul>
                 </div>
 

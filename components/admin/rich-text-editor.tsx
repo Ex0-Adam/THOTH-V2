@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 type RichTextEditorProps = {
   label: string;
@@ -15,8 +15,24 @@ type ToolbarAction = {
   command?: string;
   value?: string;
   title: string;
-  run?: () => void;
+  action?: 'insertLink' | 'insertImage' | 'clearFormatting';
 };
+
+const toolbarActions: ToolbarAction[] = [
+  { label: 'B', command: 'bold', title: 'Bold' },
+  { label: 'I', command: 'italic', title: 'Italic' },
+  { label: 'U', command: 'underline', title: 'Underline' },
+  { label: 'H1', command: 'formatBlock', value: 'h1', title: 'Heading 1' },
+  { label: 'H2', command: 'formatBlock', value: 'h2', title: 'Heading 2' },
+  { label: 'H3', command: 'formatBlock', value: 'h3', title: 'Heading 3' },
+  { label: 'P', command: 'formatBlock', value: 'p', title: 'Paragraph' },
+  { label: '• List', command: 'insertUnorderedList', title: 'Bullet List' },
+  { label: '1. List', command: 'insertOrderedList', title: 'Numbered List' },
+  { label: 'Quote', command: 'formatBlock', value: 'blockquote', title: 'Quote' },
+  { label: 'Link', title: 'Insert Link', action: 'insertLink' },
+  { label: 'Image (URL)', title: 'Insert Image from URL', action: 'insertImage' },
+  { label: 'Clear', title: 'Clear Formatting', action: 'clearFormatting' },
+];
 
 export default function RichTextEditor({
   label,
@@ -77,22 +93,6 @@ export default function RichTextEditor({
     onChange(nextValue);
   }
 
-  const actions = useMemo<ToolbarAction[]>(() => [
-    { label: 'B', command: 'bold', title: 'Bold' },
-    { label: 'I', command: 'italic', title: 'Italic' },
-    { label: 'U', command: 'underline', title: 'Underline' },
-    { label: 'H1', command: 'formatBlock', value: 'h1', title: 'Heading 1' },
-    { label: 'H2', command: 'formatBlock', value: 'h2', title: 'Heading 2' },
-    { label: 'H3', command: 'formatBlock', value: 'h3', title: 'Heading 3' },
-    { label: 'P', command: 'formatBlock', value: 'p', title: 'Paragraph' },
-    { label: '• List', command: 'insertUnorderedList', title: 'Bullet List' },
-    { label: '1. List', command: 'insertOrderedList', title: 'Numbered List' },
-    { label: 'Quote', command: 'formatBlock', value: 'blockquote', title: 'Quote' },
-    { label: 'Link', title: 'Insert Link', run: insertLink },
-    { label: 'Image (URL)', title: 'Insert Image from URL', run: insertImage },
-    { label: 'Clear', title: 'Clear Formatting', run: clearFormatting },
-  ], []);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -102,17 +102,21 @@ export default function RichTextEditor({
 
       <div className="overflow-hidden rounded-2xl border border-white/40 bg-white/70 shadow-[0_18px_35px_-28px_rgba(15,23,42,0.28)] backdrop-blur">
         <div className="flex flex-wrap gap-2 border-b border-slate-200/70 bg-slate-50/80 px-3 py-3">
-          {actions.map((action) => (
+          {toolbarActions.map((action) => (
             <button
               key={action.title}
               type="button"
               title={action.title}
               onClick={() => {
-                if (action.run) {
-                  action.run();
-                  return;
+                if (action.command) {
+                  runCommand(action.command, action.value);
+                } else if (action.action === 'insertLink') {
+                  insertLink();
+                } else if (action.action === 'insertImage') {
+                  insertImage();
+                } else if (action.action === 'clearFormatting') {
+                  clearFormatting();
                 }
-                if (action.command) runCommand(action.command, action.value);
               }}
               className="rounded-xl border border-white/40 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-all hover:border-indigo-300 hover:text-indigo-700"
             >

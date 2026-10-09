@@ -11,6 +11,10 @@ type RouteContext = {
   params: { id: string } | Promise<{ id: string }>;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 async function resolveId(context: RouteContext): Promise<string> {
   if (context.params instanceof Promise) {
     const resolved = await context.params;
@@ -24,6 +28,21 @@ function validatePayload(body: Record<string, unknown>): StaffMemberInput {
   if (!body.name || !body.slug || !body.role) {
     throw new Error("name, slug and role are required");
   }
+
+  const repos = Array.isArray(body.repos)
+    ? body.repos.map((repo: unknown) => {
+        if (!isRecord(repo)) {
+          throw new Error("Each repository must be an object");
+        }
+
+        return {
+          name: String(repo.name || "Untitled Repo"),
+          demoUrl: repo.demoUrl ? String(repo.demoUrl) : null,
+          sourceUrl: repo.sourceUrl ? String(repo.sourceUrl) : null,
+          landingUrl: repo.landingUrl ? String(repo.landingUrl) : null,
+        };
+      })
+    : [];
 
   return {
     slug: String(body.slug).trim().toLowerCase(),
@@ -41,14 +60,7 @@ function validatePayload(body: Record<string, unknown>): StaffMemberInput {
     sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : Number(body.sortOrder ?? 0),
     featured: Boolean(body.featured),
     skills: Array.isArray(body.skills) ? body.skills.map((skill) => String(skill)) : [],
-    repos: Array.isArray(body.repos)
-      ? body.repos.map((repo: any) => ({
-          name: String(repo.name || "Untitled Repo"),
-          demoUrl: repo.demoUrl ? String(repo.demoUrl) : null,
-          sourceUrl: repo.sourceUrl ? String(repo.sourceUrl) : null,
-          landingUrl: repo.landingUrl ? String(repo.landingUrl) : null,
-        }))
-      : [],
+    repos,
   };
 }
 

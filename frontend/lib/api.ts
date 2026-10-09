@@ -51,7 +51,7 @@ interface ErrorResponse {
 // Type Definitions
 // ============================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success?: boolean;
   data?: T;
   error?: string;
@@ -91,7 +91,7 @@ export interface DashboardStats {
   totalProducts?: number;
   totalProjects?: number;
   totalStaffMembers?: number;
-  recentActivity?: any[];
+  recentActivity?: unknown[];
 }
 
 export interface SiteConfig {
@@ -99,7 +99,17 @@ export interface SiteConfig {
   siteDescription?: string;
   brandColor?: string;
   logoUrl?: string;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+type ApiObject = Record<string, unknown>;
+
+function isApiResponse<T>(response: ApiResponse<T> | T): response is ApiResponse<T> {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    ('success' in response || 'data' in response)
+  );
 }
 
 // ============================================
@@ -196,26 +206,19 @@ export const ApiUtils = {
     response: ApiResponse<T> | T,
     fallback?: T
   ): T | null {
-    // If response is already the data (not wrapped)
-    if (
-      response &&
-      typeof response === 'object' &&
-      !('success' in response) &&
-      !('data' in response)
-    ) {
-      return response as T;
+    if (!isApiResponse(response)) {
+      return response;
     }
 
-    // If wrapped in ApiResponse
-    const apiResp = response as any;
-    if (apiResp.data) {
-      return apiResp.data;
-    }
-    if (apiResp.success === false) {
-      return fallback || null;
+    if ('data' in response && response.data !== undefined) {
+      return response.data;
     }
 
-    return (response as T) || fallback || null;
+    if ('success' in response && response.success === false) {
+      return fallback ?? null;
+    }
+
+    return fallback ?? null;
   },
 };
 
@@ -408,9 +411,9 @@ export const Pages = {
    * Get all pages
    * GET /api/pages
    */
-  async getAll(): Promise<any[]> {
+  async getAll(): Promise<ApiObject[]> {
     try {
-      const response = await fetchApi<any[] | ApiResponse<any[]>>(
+      const response = await fetchApi<ApiObject[] | ApiResponse<ApiObject[]>>(
         '/api/pages'
       );
       return ApiUtils.handleResponse(response, []) || [];
@@ -424,9 +427,9 @@ export const Pages = {
    * Get page by slug or ID
    * GET /api/pages/:id
    */
-  async getById(id: string): Promise<any | null> {
+  async getById(id: string): Promise<ApiObject | null> {
     try {
-      const response = await fetchApi<any | ApiResponse<any>>(
+      const response = await fetchApi<ApiObject | ApiResponse<ApiObject>>(
         `/api/pages/${id}`
       );
       return ApiUtils.handleResponse(response);
@@ -446,9 +449,9 @@ export const Categories = {
    * Get all categories
    * GET /api/categories
    */
-  async getAll(): Promise<any[]> {
+  async getAll(): Promise<ApiObject[]> {
     try {
-      const response = await fetchApi<any[] | ApiResponse<any[]>>(
+      const response = await fetchApi<ApiObject[] | ApiResponse<ApiObject[]>>(
         '/api/categories'
       );
       return ApiUtils.handleResponse(response, []) || [];

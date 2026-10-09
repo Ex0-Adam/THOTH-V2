@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
+import Link from 'next/link';
 
 /**
  * Error Boundary Component
@@ -101,12 +102,12 @@ export default class ErrorBoundary extends React.Component<
               >
                 Try Again
               </button>
-              <a
+              <Link
                 href="/"
                 className="block w-full px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium text-center"
               >
                 Back to Home
-              </a>
+              </Link>
             </div>
           </div>
         </div>
