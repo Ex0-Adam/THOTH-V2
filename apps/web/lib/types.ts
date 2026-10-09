@@ -44,6 +44,24 @@ export interface MenuItem {
   updatedAt: string;
 }
 
+export interface TemplateTokens {
+  primaryColor?: string;
+  accentColor?: string;
+  bgColor?: string;
+  textColor?: string;
+  fontFamily?: string;
+  layoutStyle?: string;
+  mode?: string;
+}
+
+export interface ActiveTemplate {
+  active: boolean;
+  templateId: string | null;
+  name?: string;
+  version?: string;
+  tokens: TemplateTokens;
+}
+
 export interface SiteConfig {
   id: string;
   siteName: string;

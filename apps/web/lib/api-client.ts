@@ -1,7 +1,7 @@
 // Central API client for the public web app.
 // All data access goes through here — components never fetch CMS URLs directly.
 
-import type { MenuItem, Page, Project, SiteConfig } from "./types";
+import type { ActiveTemplate, MenuItem, Page, Project, SiteConfig } from "./types";
 
 /** Env var missing or empty → app is misconfigured. */
 export class ApiConfigError extends Error {
@@ -78,5 +78,8 @@ export const api = {
   },
   projects: {
     list: () => getJson<Project[]>("/api/projects"),
+  },
+  template: {
+    active: () => getJson<ActiveTemplate>("/api/templates/active"),
   },
 };

@@ -1,7 +1,7 @@
 ﻿import { readdirSync, existsSync, mkdirSync, readFileSync, rmSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AdmZip from 'adm-zip';
+import { safeExtractZipBuffer } from '../archive/safe-zip';
 import {
   CMS_EXTENSION_API_VERSION,
   type ExtensionManifest,
@@ -14,8 +14,6 @@ const EXTENSION_STATE_FILE = '.cms-extension-state.json';
 const REGISTRY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const EXTENSIONS_DIR = path.join(REGISTRY_ROOT, 'extensions');
 const EXTENSION_TMP_DIR = path.join(REGISTRY_ROOT, 'tmp', 'extensions');
-const MAX_EXTRACTED_BYTES = 64 * 1024 * 1024;
-const MAX_ARCHIVE_ENTRIES = 2_000;
 
 export { CMS_EXTENSION_API_VERSION, MAX_ARCHIVE_BYTES };
 export type { ExtensionManifest } from './validator';
@@ -175,51 +173,6 @@ function resolveExtractedRoot(stagingDir: string) {
   }
 
   throw new Error('Uploaded package does not contain extension.json at the root of the archive.');
-}
-
-function safeExtractZipBuffer(buffer: Buffer, stagingDir: string) {
-  let archive: AdmZip;
-  try {
-    archive = new AdmZip(buffer);
-  } catch {
-    throw new Error('The uploaded file is not a readable ZIP archive.');
-  }
-
-  const entries = archive.getEntries();
-  if (entries.length > MAX_ARCHIVE_ENTRIES) {
-    throw new Error(`Archive contains too many files (limit ${MAX_ARCHIVE_ENTRIES}).`);
-  }
-
-  let extractedBytes = 0;
-  for (const entry of entries) {
-    if (entry.isDirectory) continue;
-
-    const rawName = entry.entryName.replace(/\\/g, '/');
-    const normalized = path.posix.normalize(rawName);
-    if (
-      rawName.includes('\0') ||
-      path.posix.isAbsolute(rawName) ||
-      normalized === '..' ||
-      normalized.startsWith('../')
-    ) {
-      throw new Error(`Archive entry has an unsafe path: ${entry.entryName}`);
-    }
-
-    const destination = path.join(stagingDir, normalized);
-    const relative = path.relative(stagingDir, destination);
-    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new Error(`Archive entry escapes the staging directory: ${entry.entryName}`);
-    }
-
-    const data = entry.getData();
-    extractedBytes += data.length;
-    if (extractedBytes > MAX_EXTRACTED_BYTES) {
-      throw new Error(`Archive expands beyond the ${Math.round(MAX_EXTRACTED_BYTES / 1024 / 1024)} MB limit.`);
-    }
-
-    mkdirSync(path.dirname(destination), { recursive: true });
-    writeFileSync(destination, data);
-  }
 }
 
 async function installExtensionFromBuffer(buffer: Buffer, baseName: string, source: string | null) {
