@@ -17,8 +17,8 @@
 | Stack | Next.js **16.2.0**, React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
 | Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
-| Vercel | **ตรวจ 2026-10-09:** CLI 60.1.3 login = **`ex0-adam`** (scope `adam-project` · เปลี่ยนจาก `insurgent-dev` ด้วย browser login) · มี project **`thoth-v2`** (id `prj_Prcs7H2WKxPNld0b60Zp9XnQNSYl`) แต่ **ยังไม่มี deployment เลย** (`latestProductionUrl: --`, `vercel ls` = No deployments) · ไม่มี `.vercel/` link ใน repo · `vercel.json` อ้าง secret `@database_url` / `@app_url` / `@backend_url` — ยังไม่ยืนยันว่าตั้งใน project ใหม่แล้ว |
-| Test | **มีแล้ว (2026-10-08):** `npm test` = `node --test tests/*.test.mjs` (route-policy + session) — 30 tests |
+| Vercel | CLI 60.1.3 login **`ex0-adam`** (team `adam-project`) · project **`thoth-v2`** (id `prj_Prcs7H2WKxPNld0b60Zp9XnQNSYl`) **deploy แล้ว** — prod live **`https://thoth-v2.vercel.app`** (ผู้ deploy = ex0-adam; สุดท้าย redeploy 2026-10-09) · ไม่มี `.vercel/` ลิงก์ใน repo (link อยู่ `/tmp/opencode/vercel-thoth`) · **env บน project (Secret — อ่านค่าผ่าน CLI/API ไม่ได้):** `DATABASE_URL` `PRISMA_DATABASE_URL` `POSTGRES_URL` มาจาก Vercel integration store **`prisma-postgres-aero-compass`** (= product **Prisma Postgres**, region `sin1`, config `icfg_p9nGP4nSb3PHX3I8okzkkCup`) + **`SESSION_SECRET`** (เพิ่ม 2026-10-09, production+preview) · **prod DB apply schema แล้ว 2026-10-09** (`prisma db push` 12 ตาราง; DB ว่างเดิม) + seed admin `gridsdev.web@gmail.com` (`superadmin`, `mustChangePassword=false`) → **login verify = HTTP 200** · bootstrap prod = `{schemaReady:true, needsSetup:false}` · `vercel.json` อ้าง secret `@database_url`/`@app_url`/`@backend_url` = ของเก่า/ยังไม่ยืนยัน (env จริงมาจาก integration store) |
+| Test | **มีแล้ว (2026-10-09):** `npm test` = `node --test tests/*.test.mjs` (route-policy + session) — 52 tests |
 | Python | ไม่มี (สอดคล้องกฎ #6 ✅) |
 
 ### คำสั่งที่ใช้ได้จริง (รันตรวจแล้ว)
@@ -30,7 +30,7 @@ npm run dev            # http://localhost:3000
 npm run build          # ✅ BUILD_EXIT=0 (ตรวจ 2026-10-08)
 npm run lint           # ✅ PASS — 0 errors / 20 warnings (ตรวจ 2026-10-09)
 npx tsc --noEmit       # ✅ exit 0 (ตรวจ 2026-10-08)
-npx prisma db push     # ⚠️ ดูคำเตือน drift ด้านล่าง — "ห้าม" ใช้ล้วน ๆ ใน DB ปัจจุบัน
+npx prisma db push     # ⚠️ ตรวจ diff ก่อนทุกครั้ง (2026-10-09: Neon local + Prisma Postgres prod ต่าง sync กับ schema แล้ว)
 npx prisma studio
 npm run scaffold:module -- --id=... --name=...   # scripts/create-extension.mjs
 ```
@@ -39,6 +39,8 @@ npm run scaffold:module -- --id=... --name=...   # scripts/create-extension.mjs
 >
 > 🛑 **DB ปัจจุบัน = Neon (`DATABASE_URL` → `ep-small-wind-…-pooler.ap-southeast-1.aws.neon.tech/neondb`)** — **sync กับ schema แล้วเมื่อ 2026-10-09** โดย "ล้าง" ของเก่าตามมติพี่ฆัง: drop ตาราง `MarketplaceTemplate` (12 rows), `TemplateLicense` (3 rows) และ 11 คอลัมน์ legacy บน `SiteConfig` (`portfolioTitle/portfolioDescription/robotsIndex/robotsFollow/bodyScripts/developerKey/faviconUrl/headScripts/heroTitleFont/heroTitleSize/isWhiteLabel`) · **backup ก่อนลบอยู่ที่ `/tmp/opencode/thoth-neon-legacy-backup.json`** → ตอนนี้ `npx prisma db push` ใช้ได้ (in sync) แต่ **ให้ตรวจ diff ก่อน apply ทุกครั้ง** เพราะอนาคตอาจมี drift/data-loss อีก
 
+> 🌐 **DB prod (Vercel/`thoth-v2`) = Prisma Postgres** (`db.prisma.io`) — apply schema แล้ว 2026-10-09 (`prisma db push` จากค่าที่พี่ฆังวางใน `.env.local`) + seed admin → bootstrap prod = `{schemaReady:true, needsSetup:false}`; env prod เป็น **Secret อ่านค่าผ่าน CLI/API ไม่ได้** (ต้องคัดลอกจาก Vercel Storage → store `prisma-postgres-aero-compass`) · ⚠️ `.env.local` มี `DATABASE_URL` **ซ้ำ 2 บรรทัด** — บรรทัดสุดท้ายคือ **prod** → `npm run dev` ในเครื่องจะเชื่อม prod (พี่ฆังเลือกเก็บไว้ 2026-10-09)
+>
 > ⚠️ บนเครื่องนี้ Node = **v24.18.0**, npm = **12.0.1** — แต่ README อ้าง Node 18+/20+, `vercel.json` อ้าง `nodeVersion: 20.x`, `package.json` **ไม่มี field `engines`** → ยังไม่มีตัวบังคับเวอร์ชันจริง
 
 ---
@@ -203,4 +205,4 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 
 ## 7. สรุปสถานะ 1 บรรทัด
 
-> **โค้ด build/typecheck/tests ผ่าน (npm test = 52 ผ่าน 2026-10-09) แต่ยังไม่พร้อมผลิต:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, git = commit แรกแล้ว + backup ลงดิส (**ไม่ต้อง push ไป gitea**) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = 52) แต่**ยังไม่พร้อมผลิตเต็มตัว:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
