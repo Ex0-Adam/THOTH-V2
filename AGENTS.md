@@ -18,7 +18,7 @@
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
 | Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
 | Vercel | CLI 60.1.3 login **`ex0-adam`** (team `adam-project`) · project **`thoth-v2`** (id `prj_Prcs7H2WKxPNld0b60Zp9XnQNSYl`) **deploy แล้ว** — prod live **`https://thoth-v2.vercel.app`** (ผู้ deploy = ex0-adam; สุดท้าย redeploy 2026-10-09) · ไม่มี `.vercel/` ลิงก์ใน repo (link อยู่ `/tmp/opencode/vercel-thoth`) · **env บน project (Secret — อ่านค่าผ่าน CLI/API ไม่ได้):** `DATABASE_URL` `PRISMA_DATABASE_URL` `POSTGRES_URL` มาจาก Vercel integration store **`prisma-postgres-aero-compass`** (= product **Prisma Postgres**, region `sin1`, config `icfg_p9nGP4nSb3PHX3I8okzkkCup`) + **`SESSION_SECRET`** (เพิ่ม 2026-10-09, production+preview) · **prod DB apply schema แล้ว 2026-10-09** (`prisma db push` 12 ตาราง; DB ว่างเดิม) + seed admin `gridsdev.web@gmail.com` (`superadmin`, `mustChangePassword=false`) → **login verify = HTTP 200** · bootstrap prod = `{schemaReady:true, needsSetup:false}` · `vercel.json` อ้าง secret `@database_url`/`@app_url`/`@backend_url` = ของเก่า/ยังไม่ยืนยัน (env จริงมาจาก integration store) |
-| Test | **มีแล้ว (2026-10-09):** `npm test` = `node --test tests/*.test.mjs` (route-policy + session) — 52 tests |
+| Test | **มีแล้ว (2026-10-09):** `npm test` = `node --test tests/*.test.mjs` (route-policy + session + rate-limit) — 59 tests |
 | Python | ไม่มี (สอดคล้องกฎ #6 ✅) |
 
 ### คำสั่งที่ใช้ได้จริง (รันตรวจแล้ว)
@@ -83,14 +83,14 @@ THOTH/
 
 ## 3. ⚠️ ปัญหาที่ยืนยันแล้ว (ห้ามมองข้าม ห้ามแก้แบบเดา)
 
-### P0 — ความปลอดภัย (สถานะอัปเดต 2026-10-09 — ปิดแล้ว ยกเว้นข้อ 4/6)
+### P0 — ความปลอดภัย (สถานะอัปเดต 2026-10-09 — ปิดแล้ว ยกเว้นข้อ 4)
 
 1. ✅ **ปิดแล้ว (ขั้น 0):** API เขียนข้อมูลทุก route มี `guardApiSession`/auth proof (ตรวจซ้ำ 2026-10-09: 23/27 route files มี guard; 4 ที่เหลือคือ auth/login, auth/logout, auth/setup, system/bootstrap ซึ่งเป็น allowlist + `tests/route-policy.test.mjs` บังคับทุก write)
 2. ✅ **ปิดแล้ว:** Session cookie ออกเป็น signed token ผ่าน `signSessionToken` + `SESSION_SECRET` (ขาดแล้ว throw — ตรวจ `lib/auth.ts`)
 3. ✅ **ปิดแล้ว:** `SESSION_SECRET` ถูกใช้จริงแล้ว (เดิม grep พบ 0 จุด)
 4. ⚠️ **เหลือ — HTML sanitization:** `dangerouslySetInnerHTML` กับ `page.content` ยังไม่ sanitize ทั้ง 2 จุด (`app/[slug]/page.tsx:94`, `apps/web/app/(page)/[slug]/page.tsx:128`) — คนนอกเขียน content ไม่ได้แล้ว (เขียนผ่าน session เท่านั้น) แต่ **admin ที่ถูกบุกรุกหรือ XSS ข้ามpath ยังยิงสคริปต์หน้า public ได้** → รอพี่ฆังตัดสินเรื่อง sanitizer
 5. ✅ **ปิดแล้ว:** cron ใช้ `isCronAuthorized` และไม่มี fail-open (`return true`) แล้ว
-6. ⚠️ **แก้บางส่วน:** `app/api/upload/route.ts` มี `guardApiSession` แล้ว แต่ **ยังไม่มี rate limit** (ตรวจ 2026-10-09: grep rate/limit = 0)
+6. ✅ **ปิดแล้ว:** `app/api/upload/route.ts` มี `guardApiSession` + **rate limit** (ใหม่ 2026-10-09): `lib/security/rate-limit.ts` (in-memory fixed-window) · บัคเก็ตต่อ user/IP · default 30 req/min · env `UPLOAD_RATE_LIMIT_MAX` / `UPLOAD_RATE_LIMIT_WINDOW_MS` (0 = ปิด) · ตอบ 429 + `Retry-After` · tests 7 ตัวใน `tests/rate-limit.test.mjs`
 
 ### P1 — ฟีเจอร์ที่เอกสารบอกว่ามี แต่โค้ดไม่มี
 
@@ -205,4 +205,4 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 
 ## 7. สรุปสถานะ 1 บรรทัด
 
-> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = 52) แต่**ยังไม่พร้อมผลิตเต็มตัว:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = 59) แต่**ยังไม่พร้อมผลิตเต็มตัว:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
