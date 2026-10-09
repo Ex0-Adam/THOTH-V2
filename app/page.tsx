@@ -1,5 +1,8 @@
 ﻿import Link from 'next/link';
 
+const MARKETPLACE_URL =
+  process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://micro-marketplace-iota.vercel.app';
+
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-white">
@@ -9,6 +12,7 @@ export default function HomePage() {
           <div className="text-2xl font-black text-indigo-600">Micro CMS</div>
           <div className="flex gap-6">
             <Link href="/products" className="text-slate-600 hover:text-indigo-600 transition font-semibold">Products</Link>
+            <a href={MARKETPLACE_URL} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-indigo-600 transition font-semibold">Marketplace</a>
             <a href="https://thoth-documents.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-indigo-600 transition font-semibold">เอกสาร</a>
             <Link href="/login" className="text-indigo-600 hover:text-indigo-700 transition font-semibold">Admin Login</Link>
           </div>
@@ -120,6 +124,7 @@ export default function HomePage() {
               <h4 className="font-bold text-white mb-3 text-sm">Product</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li><Link href="/products" className="hover:text-white transition">Products</Link></li>
+                <li><a href={MARKETPLACE_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Marketplace</a></li>
                 <li><Link href="/dashboard" className="hover:text-white transition">Dashboard</Link></li>
                 <li><a href="#" className="hover:text-white transition">Documentation</a></li>
               </ul>

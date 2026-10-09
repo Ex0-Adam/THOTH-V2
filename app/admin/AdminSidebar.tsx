@@ -33,6 +33,7 @@ const menuGroups = [
     title: 'System',
     items: [
       { label: 'Modules', href: '/admin/modules' },
+      { label: 'Marketplace', href: '/admin/marketplace' },
       { label: 'Bootstrap Status', href: '/admin/database' },
     ],
   },

@@ -115,6 +115,7 @@ DATABASE_URL="postgresql://user:password@localhost:5432/database?schema=public"
 # URLs
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_BACKEND_URL="http://localhost:3000"
+NEXT_PUBLIC_MARKETPLACE_URL="https://micro-marketplace-iota.vercel.app"
 
 # Security
 SESSION_SECRET="generate-random-strong-secret-here"

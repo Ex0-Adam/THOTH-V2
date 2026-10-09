@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest) {
       // Zone 3 - Footer
       "footerCopyright", "footerBgColor", "footerTextColor",
       "discordUrl", "githubUrl", "twitterUrl", "linkedinUrl",
-      "privacyUrl", "termsUrl", "cookiePolicyUrl",
+      "privacyUrl", "termsUrl", "cookiePolicyUrl", "marketplaceUrl",
     ] as const;
 
     const data: Partial<Omit<SiteConfig, "id" | "createdAt" | "updatedAt">> = {};

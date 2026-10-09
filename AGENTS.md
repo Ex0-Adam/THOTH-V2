@@ -30,10 +30,14 @@ npm run dev            # http://localhost:3000
 npm run build          # ✅ BUILD_EXIT=0 (ตรวจ 2026-10-08)
 npm run lint           # ✅ PASS — 0 errors / 20 warnings (ตรวจ 2026-10-09)
 npx tsc --noEmit       # ✅ exit 0 (ตรวจ 2026-10-08)
-npx prisma db push     # sync schema (ไม่มี migrations folder — ใช้ db push ล้วน)
+npx prisma db push     # ⚠️ ดูคำเตือน drift ด้านล่าง — "ห้าม" ใช้ล้วน ๆ ใน DB ปัจจุบัน
 npx prisma studio
 npm run scaffold:module -- --id=... --name=...   # scripts/create-extension.mjs
 ```
+
+> ⚠️ **PRISMA CLI อ่านแค่ `.env` ไม่ได้อ่าน `.env.local`** — THOTH มีแต่ `.env.local` → คำสั่ง prisma ตรง ๆ จะ fail (`Environment variable not found: DATABASE_URL`). ต้องโหลด env เอง เช่น `bash -c 'set -a; . ./.env.local; set +a; npx prisma …'`
+>
+> 🛑 **DB ปัจจุบัน = Neon (`DATABASE_URL` → `ep-small-wind-…-pooler.ap-southeast-1.aws.neon.tech/neondb`)** — **sync กับ schema แล้วเมื่อ 2026-10-09** โดย "ล้าง" ของเก่าตามมติพี่ฆัง: drop ตาราง `MarketplaceTemplate` (12 rows), `TemplateLicense` (3 rows) และ 11 คอลัมน์ legacy บน `SiteConfig` (`portfolioTitle/portfolioDescription/robotsIndex/robotsFollow/bodyScripts/developerKey/faviconUrl/headScripts/heroTitleFont/heroTitleSize/isWhiteLabel`) · **backup ก่อนลบอยู่ที่ `/tmp/opencode/thoth-neon-legacy-backup.json`** → ตอนนี้ `npx prisma db push` ใช้ได้ (in sync) แต่ **ให้ตรวจ diff ก่อน apply ทุกครั้ง** เพราะอนาคตอาจมี drift/data-loss อีก
 
 > ⚠️ บนเครื่องนี้ Node = **v24.18.0**, npm = **12.0.1** — แต่ README อ้าง Node 18+/20+, `vercel.json` อ้าง `nodeVersion: 20.x`, `package.json` **ไม่มี field `engines`** → ยังไม่มีตัวบังคับเวอร์ชันจริง
 
@@ -65,7 +69,7 @@ THOTH/
 ### Route ที่ build ได้จริง
 
 - **Public:** `/`, `/products`, `/dashboard`, `/[slug]`, `/login`, `/setup`
-- **Admin:** `/admin` + 12 sub-pages (projects, staff, pages, categories, media, menu, configuration, design, automation, modules, database, change-password)
+- **Admin:** `/admin` + 13 sub-pages (projects, staff, pages, categories, media, menu, configuration, design, automation, modules, marketplace, database, change-password)
 - **API:** auth(4) · pages(2) · projects(2) · categories(2) · staff(2) · menu-items(2) · site-config(1) · upload(1) · system/bootstrap(1) · admin/*(10)
 
 ### Prisma models (11 ตัว)
@@ -153,6 +157,7 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 | ประวัติ beta | `CHANGELOG.md`, `RELEASE_NOTES.md` |
 | แผนอัปเดตถัดไป | **`docs/UPDATE_PLAN_2026-10.md`** (7 เฟส) ← สร้างพร้อมไฟล์นี้ |
 | แผนแยกส่วน core/หน้าเว็บ | **`docs/SPLIT_HEADLESS_PLAN_2026-10.md`** (ขั้น A–E) ← สร้าง 2026-10-08 |
+| Marketplace link (P2) | `SiteConfig.marketplaceUrl` · `app/admin/marketplace/page.tsx` · `NEXT_PUBLIC_MARKETPLACE_URL` · prod: `https://micro-marketplace-iota.vercel.app` |
 | Env ตัวอย่าง | `.env.example` (ยังมีช่องว่าง/ชื่อผิด ตามข้อ 10–13) |
 
 ---

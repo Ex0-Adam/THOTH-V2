@@ -47,6 +47,7 @@ const defaults = {
   privacyUrl: "",
   termsUrl: "",
   cookiePolicyUrl: "",
+  marketplaceUrl: "",
 };
 
 export const siteConfigKeys = [
@@ -56,7 +57,7 @@ export const siteConfigKeys = [
   "heroBtnColor", "primaryColor", "accentColor", "bgColor", "textColor", "fontFamily",
   "layoutStyle", "showSidebar", "sidebarPosition", "footerCopyright", "footerBgColor",
   "footerTextColor", "discordUrl", "githubUrl", "twitterUrl", "linkedinUrl",
-  "privacyUrl", "termsUrl", "cookiePolicyUrl",
+  "privacyUrl", "termsUrl", "cookiePolicyUrl", "marketplaceUrl",
 ] as const;
 
 export async function getSiteConfig(): Promise<SiteConfig> {

@@ -70,6 +70,7 @@ model SiteConfig {
   privacyUrl      String   @default("")
   termsUrl        String   @default("")
   cookiePolicyUrl String   @default("")
+  marketplaceUrl  String   @default("")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
