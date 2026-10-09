@@ -104,10 +104,10 @@ THOTH/
 
 ### P2 — Config / Dependency
 
-10. **ตัวแปร S3 ชื่อไม่ตรงกัน:** โค้ดเรียก `S3_ENDPOINT` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_BUCKET` / `S3_REGION` แต่ `.env.example` เขียน `AWS_S3_*` → **เอกสารใช้ไม่ได้จริง** (`lib/storage/s3.ts` throw ถ้าไม่ครบ)
-11. **`APP_ENCRYPTION_KEY` จำเป็นต่อ `lib/security/secrets.ts` แต่ไม่มีใน `.env.example` และ `.env.local`** → บันทึก Gemini API key ผ่าน `/api/admin/automation/config` จะ throw ตอน runtime
-12. **ตัวแปรที่โค้ดใช้แต่ไม่มีใน `.env.example` (อัปเดต 2026-10-09 — `APP_ENCRYPTION_KEY`, `AUTOMATION_CRON_SECRET` เพิ่มแล้ว; เพิ่ม `TEMPLATES_DIR` + `TEMPLATES_WRITE_ENABLED` ในบล็อก Templates Configuration แล้ว):** `STORAGE_DRIVER`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`, `LOCAL_UPLOAD_URL_BASE`
-13. **ตัวแปรใน `.env.example` ที่โค้ดไม่ได้ใช้ (`SESSION_SECRET` ตัดออกแล้ว — ถูกใช้จริง):** `SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `AWS_*`
+10. ✅ **ปิดแล้ว (2026-10-10 Phase 3):** `.env.example` ใช้ชื่อ `S3_*` ให้ตรงโค้ดแล้ว (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`) + เพิ่ม `STORAGE_DRIVER`/`LOCAL_UPLOAD_URL_BASE` (เดิมเขียน `AWS_S3_*` ใช้จริงไม่ได้)
+11. ⚠️ **ครึ่งปิด:** `.env.example` มี `APP_ENCRYPTION_KEY` แล้ว แต่ `.env.local` ยังไม่มี + ยังมีตัวแปรขยะเก่า (`AWS_*`, `SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `EXTENSIONS_DIR`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_BACKEND_URL`) → ยัง throw ตอนบันทึก automation config; **รอพี่ฆังสั่ง cleanup `.env.local`** (กฎห้ามแก้เอง)
+12. ✅ **ปิดแล้ว (2026-10-10):** ตัวแปรที่โค้ดใช้ครบใน `.env.example` แล้ว (`STORAGE_DRIVER`, `S3_*`, `LOCAL_UPLOAD_URL_BASE`, `APP_ENCRYPTION_KEY`, `AUTOMATION_CRON_SECRET`, `UPLOAD_RATE_LIMIT_*`)
+13. ✅ **ปิดแล้ว (2026-10-10):** ลบ orphan ออกจาก `.env.example` หมดแล้ว (`SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `AWS_*`, `EXTENSIONS_DIR`, `TEMPLATES_DIR`) และ `NEXT_PUBLIC_APP_URL`/`NEXT_PUBLIC_BACKEND_URL` → comment อ้างอิง `apps/web/.env.example`; `SESSION_SECRET` เว้นว่าง + กำชับ generate (เดิมเป็นค่าคงที่ตัวอย่าง = ปลอม session ได้)
 14. **`vercel.json` มี key ที่ไม่อยู่ใน schema ปัจจุบันของ Vercel** (เทียบ docs `vercel.com/docs/project-configuration` 2026-08-25): `env`, `nodeVersion`, `buildEnvironment` **ไม่ใช่ property ที่รองรับ** → ควรย้ายไป Project Settings / `.env`
 15. **Dependencies ที่ไม่ถูก import ที่ไหนเลย (ตรวจแล้ว 0 จุด):** `admin-lte`, `bootstrap`, `jquery`, `popper.js`, `@uiw/react-markdown-preview`, `@uiw/react-md-editor` (6 ตัว — editor จริงคือ `components/admin/rich-text-editor.tsx` ที่เขียนเองด้วย contentEditable)
 16. ✅ **ปิดแล้ว:** `npm run lint` ผ่าน — 0 errors / 20 warnings (ตรวจ 2026-10-09); CI ใน `.github/workflows/release.yml` ยังใช้ `continue-on-error: true`
@@ -162,7 +162,7 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 | แผนอัปเดตถัดไป | **`docs/UPDATE_PLAN_2026-10.md`** (7 เฟส) ← สร้างพร้อมไฟล์นี้ |
 | แผนแยกส่วน core/หน้าเว็บ | **`docs/SPLIT_HEADLESS_PLAN_2026-10.md`** (ขั้น A–E) ← สร้าง 2026-10-08 |
 | Marketplace link (P2) | `SiteConfig.marketplaceUrl` · `app/admin/marketplace/page.tsx` · `NEXT_PUBLIC_MARKETPLACE_URL` · prod: `https://micro-marketplace-iota.vercel.app` |
-| Env ตัวอย่าง | `.env.example` (ยังมีช่องว่าง/ชื่อผิด ตามข้อ 10–13) |
+| Env ตัวอย่าง | `.env.example` (เรียบร้อย 2026-10-10 — ข้อ 10/12/13 ปิดแล้ว, ข้อ 11 เหลือรอ cleanup `.env.local`) |
 
 ---
 
