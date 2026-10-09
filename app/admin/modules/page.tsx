@@ -2,14 +2,22 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+type ExtensionEntrypoints = {
+  adminPage?: string;
+  api?: string;
+  hooks?: string;
+};
+
 type ExtensionManifest = {
   id: string;
   name: string;
   version: string;
   apiVersion: string;
+  kind?: 'module' | 'template' | 'theme';
   description?: string;
   author?: string;
   capabilities?: string[];
+  entrypoints?: ExtensionEntrypoints;
 };
 
 type ExtensionState = {
@@ -17,6 +25,7 @@ type ExtensionState = {
   installedAt: string;
   updatedAt: string;
   lastValidatedAt: string | null;
+  source?: string | null;
 };
 
 type ExtensionItem = {
@@ -50,6 +59,8 @@ export default function ModuleAdmin() {
   const [data, setData] = useState<ExtensionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState(false);
+  const [installingUrl, setInstallingUrl] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -98,6 +109,32 @@ export default function ModuleAdmin() {
     } finally {
       setInstalling(false);
       e.target.value = '';
+    }
+  }
+
+  async function handleInstallFromUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+
+    setInstallingUrl(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await fetch('/api/admin/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const payload = (await res.json()) as { error?: string; message?: string };
+      if (!res.ok) throw new Error(payload.error || 'Install failed');
+      setSuccess(payload.message || 'Extension installed successfully.');
+      setUrlInput('');
+      await refresh();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setInstallingUrl(false);
     }
   }
 
@@ -151,11 +188,34 @@ export default function ModuleAdmin() {
               Keep optional capabilities isolated from the framework core. Each package lives in its own runtime directory, has its own manifest, and can be validated or removed without touching the base CMS.
             </p>
           </div>
-          <label className={`inline-flex cursor-pointer items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-[0_18px_35px_-22px_rgba(99,102,241,0.65)] transition-all hover:-translate-y-0.5 ${installing || !canWrite ? 'opacity-60' : ''}`}>
-            <span>{installing ? 'Installing...' : 'Upload ZIP Package'}</span>
-            <span>+</span>
-            <input type="file" accept=".zip" onChange={handleInstall} disabled={installing || !canWrite} className="hidden" />
-          </label>
+          <div className="flex w-full max-w-xl flex-col gap-3 xl:items-end">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-white/50 bg-white/70 p-1.5 backdrop-blur">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleInstallFromUrl();
+                }}
+                placeholder="https://example.com/extension.zip"
+                disabled={installingUrl || !canWrite}
+                className="w-full flex-1 bg-transparent px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-60"
+              />
+              <button
+                type="button"
+                onClick={() => void handleInstallFromUrl()}
+                disabled={installingUrl || !urlInput.trim() || !canWrite}
+                className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {installingUrl ? 'Downloading...' : 'Install from URL'}
+              </button>
+            </div>
+            <label className={`inline-flex cursor-pointer items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500 px-5 py-3 text-sm font-bold text-white shadow-[0_18px_35px_-22px_rgba(99,102,241,0.65)] transition-all hover:-translate-y-0.5 ${installing || !canWrite ? 'opacity-60' : ''}`}>
+              <span>{installing ? 'Installing...' : 'Upload ZIP Package'}</span>
+              <span>+</span>
+              <input type="file" accept=".zip" onChange={handleInstall} disabled={installing || !canWrite} className="hidden" />
+            </label>
+          </div>
         </div>
       </header>
 
@@ -233,6 +293,11 @@ export default function ModuleAdmin() {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
+                        {item.manifest?.kind && (
+                          <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                            {item.manifest.kind}
+                          </span>
+                        )}
                         <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${item.status === 'ready' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                           {item.status === 'ready' ? 'Ready' : 'Needs attention'}
                         </span>
@@ -255,6 +320,24 @@ export default function ModuleAdmin() {
                         ))}
                       </div>
                     ) : null}
+
+                    {(item.state?.source || item.manifest?.entrypoints) && (
+                      <div className="mt-3 space-y-1 text-xs text-slate-500">
+                        {item.state?.source && (
+                          <p>
+                            Source: <span className="font-mono text-slate-700">{item.state.source}</span>
+                          </p>
+                        )}
+                        {item.manifest?.entrypoints && Object.keys(item.manifest.entrypoints).length > 0 && (
+                          <p>
+                            Entrypoints:{' '}
+                            {Object.entries(item.manifest.entrypoints)
+                              .map(([key, value]) => `${key} = ${value}`)
+                              .join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     <div className="mt-4 grid gap-3 text-xs text-slate-500 md:grid-cols-3">
                       <div>

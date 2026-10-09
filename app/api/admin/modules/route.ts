@@ -2,7 +2,9 @@
 import {
   canWriteExtensions,
   getExtensionsDir,
+  getExtensionRuntimeIndex,
   installExtensionArchive,
+  installExtensionFromUrl,
   listInstalledExtensions,
   CMS_EXTENSION_API_VERSION,
 } from '@/lib/extensions/registry';
@@ -21,6 +23,7 @@ export async function GET() {
       installMode: canWriteExtensions() ? 'filesystem-write' : 'manual-only',
       extensionsDir: getExtensionsDir(),
       items: listInstalledExtensions(),
+      runtime: getExtensionRuntimeIndex(),
     });
   } catch (error) {
     return NextResponse.json(
@@ -33,7 +36,25 @@ export async function GET() {
 export async function POST(req: Request) {
   const denied = await guardApiSession();
   if (denied) return denied;
+
+  const contentType = req.headers.get('content-type') ?? '';
+
   try {
+    if (contentType.includes('application/json')) {
+      const body = (await req.json()) as { url?: unknown };
+      if (typeof body.url !== 'string' || body.url.trim().length === 0) {
+        return NextResponse.json({ error: 'Provide a "url" pointing to a .zip extension archive.' }, { status: 400 });
+      }
+
+      const installed = await installExtensionFromUrl(body.url.trim());
+
+      return NextResponse.json({
+        success: true,
+        item: installed,
+        message: `Extension '${installed.manifest?.name ?? installed.directoryName}' installed successfully.`,
+      });
+    }
+
     const formData = await req.formData();
     const file = formData.get('file');
 

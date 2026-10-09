@@ -31,6 +31,7 @@ Required fields:
 - `apiVersion`: framework extension API version
 
 Recommended fields:
+- `kind`: `module` (default), `template`, or `theme`
 - `description`
 - `author`
 - `website`
@@ -84,6 +85,29 @@ Error shape:
 - do not execute arbitrary uploaded code automatically
 - ZIP install should stay optional and can be disabled in production
 - modules must be removable without corrupting core data
+
+## Installation
+
+- default, production-safe: manual filesystem install into `extensions/<id>/`
+- optional filesystem install requires `EXTENSIONS_WRITE_ENABLED=true` and is cross-platform
+  (pure-JS extraction via `adm-zip`; no host shell)
+- two optional install sources produce the same result:
+  - ZIP upload via `/admin/modules`
+  - install-from-URL: `POST /api/admin/modules` with JSON `{ "url": "https://…/x.zip" }`
+- install-from-URL is https-only, rejects private/reserved addresses (SSRF guard),
+  follows a bounded number of redirects, and caps the archive at 8 MB
+- `EXTENSIONS_ALLOWED_HOSTS` (optional, comma-separated) bypasses the public-https
+  guard for trusted internal artifact hosts
+- archives are rejected on zip-slip paths, excessive entry counts (2,000), or
+  oversized expansion (64 MB uncompressed)
+
+## Runtime loading (metadata-only)
+
+The framework does **not** hot-load or execute extension code. `getExtensionRuntimeIndex()`
+exposes only enabled extensions plus their declared `entrypoints` as data. Any behaviour a
+module adds must be wired deliberately by the integrator (for example a direct import, as
+`modules/staff-member` does). This keeps uploaded packages from running inside the core
+process.
 
 ## Developer checklist
 1. Create `extensions/<module-id>/extension.json`

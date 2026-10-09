@@ -35,8 +35,20 @@ Manifest example:
 
 Current installation strategy:
 - production-safe default: manual filesystem install
-- optional local installer: ZIP upload when `EXTENSIONS_WRITE_ENABLED=true`
+- optional installer (enabled with `EXTENSIONS_WRITE_ENABLED=true`): either
+  - ZIP upload through `/admin/modules`, or
+  - install-from-URL (`POST /api/admin/modules` with JSON `{ "url": "https://…/x.zip" }`)
+- ZIP extraction is cross-platform (pure JavaScript via `adm-zip`) — no host shell or PowerShell required
+- install-from-URL accepts https only, rejects private/reserved addresses (SSRF guard), and caps the archive at 8 MB
+- `EXTENSIONS_ALLOWED_HOSTS` (optional) is a comma-separated allowlist for trusted internal artifact hosts
 - uploaded packages install into `extensions/`, never into core `modules/`
 - lifecycle actions available in admin: `enable`, `disable`, `validate`, `uninstall`
+
+## Runtime loading
+
+Extensions are **not** executed automatically. The loader is metadata-only:
+`getExtensionRuntimeIndex()` returns the enabled extensions and their declared
+`entrypoints` so admin tooling can surface them. Nothing from an uploaded package
+is imported or run inside the core process. See `docs/MODULE_STANDARD.md`.
 
 This separation keeps the framework lightweight and reduces the risk of extensions mutating core internals.

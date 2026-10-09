@@ -39,6 +39,7 @@ const manifest = {
   name,
   version: '0.1.0',
   apiVersion: '1',
+  kind: 'module',
   description: `Optional extension package for ${name}`,
   author,
   capabilities: ['admin-page', 'api'],

@@ -22,6 +22,10 @@
       "type": "string",
       "minLength": 1
     },
+    "kind": {
+      "type": "string",
+      "enum": ["module", "template", "theme"]
+    },
     "description": {
       "type": "string"
     },

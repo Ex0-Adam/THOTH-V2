@@ -1,19 +1,23 @@
 ﻿import { readdirSync, existsSync, mkdirSync, readFileSync, rmSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import AdmZip from 'adm-zip';
 import {
   CMS_EXTENSION_API_VERSION,
   type ExtensionManifest,
   sanitizeExtensionId,
   validateExtensionManifest,
 } from './validator';
+import { MAX_ARCHIVE_BYTES, downloadArchiveBuffer } from './url-guard';
 
 const EXTENSION_STATE_FILE = '.cms-extension-state.json';
 const REGISTRY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const EXTENSIONS_DIR = path.join(REGISTRY_ROOT, 'extensions');
 const EXTENSION_TMP_DIR = path.join(REGISTRY_ROOT, 'tmp', 'extensions');
+const MAX_EXTRACTED_BYTES = 64 * 1024 * 1024;
+const MAX_ARCHIVE_ENTRIES = 2_000;
 
-export { CMS_EXTENSION_API_VERSION };
+export { CMS_EXTENSION_API_VERSION, MAX_ARCHIVE_BYTES };
 export type { ExtensionManifest } from './validator';
 
 export type InstalledExtension = {
@@ -31,6 +35,7 @@ export type ExtensionLifecycleState = {
   installedAt: string;
   updatedAt: string;
   lastValidatedAt: string | null;
+  source?: string | null;
 };
 
 export function getExtensionsDir() {
@@ -65,6 +70,7 @@ function readState(directoryPath: string): ExtensionLifecycleState | null {
       installedAt: parsed.installedAt ?? nowIso(),
       updatedAt: parsed.updatedAt ?? nowIso(),
       lastValidatedAt: parsed.lastValidatedAt ?? null,
+      source: parsed.source ?? null,
     };
   } catch {
     return null;
@@ -75,7 +81,7 @@ function writeState(directoryPath: string, nextState: ExtensionLifecycleState) {
   writeFileSync(getStatePath(directoryPath), JSON.stringify(nextState, null, 2), 'utf8');
 }
 
-function ensureState(directoryPath: string) {
+function ensureState(directoryPath: string, source?: string | null) {
   const current = readState(directoryPath);
   if (current) return current;
 
@@ -84,6 +90,7 @@ function ensureState(directoryPath: string) {
     installedAt: nowIso(),
     updatedAt: nowIso(),
     lastValidatedAt: null,
+    source: source ?? null,
   };
   writeState(directoryPath, initial);
   return initial;
@@ -170,43 +177,65 @@ function resolveExtractedRoot(stagingDir: string) {
   throw new Error('Uploaded package does not contain extension.json at the root of the archive.');
 }
 
-async function expandZipOnWindows(zipPath: string, stagingDir: string) {
-  const { execFile } = await import('node:child_process');
-  const { promisify } = await import('node:util');
-  const execFileAsync = promisify(execFile);
+function safeExtractZipBuffer(buffer: Buffer, stagingDir: string) {
+  let archive: AdmZip;
+  try {
+    archive = new AdmZip(buffer);
+  } catch {
+    throw new Error('The uploaded file is not a readable ZIP archive.');
+  }
 
-  await execFileAsync('powershell', [
-    '-NoProfile',
-    '-Command',
-    `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${stagingDir.replace(/'/g, "''")}' -Force`,
-  ]);
+  const entries = archive.getEntries();
+  if (entries.length > MAX_ARCHIVE_ENTRIES) {
+    throw new Error(`Archive contains too many files (limit ${MAX_ARCHIVE_ENTRIES}).`);
+  }
+
+  let extractedBytes = 0;
+  for (const entry of entries) {
+    if (entry.isDirectory) continue;
+
+    const rawName = entry.entryName.replace(/\\/g, '/');
+    const normalized = path.posix.normalize(rawName);
+    if (
+      rawName.includes('\0') ||
+      path.posix.isAbsolute(rawName) ||
+      normalized === '..' ||
+      normalized.startsWith('../')
+    ) {
+      throw new Error(`Archive entry has an unsafe path: ${entry.entryName}`);
+    }
+
+    const destination = path.join(stagingDir, normalized);
+    const relative = path.relative(stagingDir, destination);
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+      throw new Error(`Archive entry escapes the staging directory: ${entry.entryName}`);
+    }
+
+    const data = entry.getData();
+    extractedBytes += data.length;
+    if (extractedBytes > MAX_EXTRACTED_BYTES) {
+      throw new Error(`Archive expands beyond the ${Math.round(MAX_EXTRACTED_BYTES / 1024 / 1024)} MB limit.`);
+    }
+
+    mkdirSync(path.dirname(destination), { recursive: true });
+    writeFileSync(destination, data);
+  }
 }
 
-export async function installExtensionArchive(file: File) {
-  if (!canWriteExtensions()) {
-    throw new Error('Extension installer is disabled. Set EXTENSIONS_WRITE_ENABLED=true to enable filesystem installation.');
-  }
-
-  if (process.platform !== 'win32') {
-    throw new Error('ZIP installation is currently supported only on Windows hosts. Use manual extraction into the extensions directory for Linux or container deployments.');
-  }
-
-  if (!file.name.endsWith('.zip')) {
-    throw new Error('Please upload a valid .zip file.');
+async function installExtensionFromBuffer(buffer: Buffer, baseName: string, source: string | null) {
+  if (buffer.length > MAX_ARCHIVE_BYTES) {
+    throw new Error(`Extension archive exceeds the ${Math.round(MAX_ARCHIVE_BYTES / 1024 / 1024)} MB limit.`);
   }
 
   const extensionsDir = ensureExtensionsDir();
   mkdirSync(EXTENSION_TMP_DIR, { recursive: true });
 
-  const fileBase = sanitizeExtensionId(file.name.replace(/\.zip$/i, '')) || `extension-${Date.now()}`;
-  const zipPath = path.join(EXTENSION_TMP_DIR, `${Date.now()}-${fileBase}.zip`);
+  const fileBase = sanitizeExtensionId(baseName) || `extension-${Date.now()}`;
   const stagingDir = path.join(EXTENSION_TMP_DIR, `${Date.now()}-${fileBase}`);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  writeFileSync(zipPath, buffer);
   mkdirSync(stagingDir, { recursive: true });
 
   try {
-    await expandZipOnWindows(zipPath, stagingDir);
+    safeExtractZipBuffer(buffer, stagingDir);
 
     const extractedRoot = resolveExtractedRoot(stagingDir);
     const extension = buildExtension(extractedRoot);
@@ -221,13 +250,38 @@ export async function installExtensionArchive(file: File) {
     }
 
     renameSync(extractedRoot, destination);
-    ensureState(destination);
+    ensureState(destination, source);
 
     return buildExtension(destination);
   } finally {
-    if (existsSync(zipPath)) rmSync(zipPath, { force: true });
     if (existsSync(stagingDir)) rmSync(stagingDir, { recursive: true, force: true });
   }
+}
+
+export async function installExtensionArchive(file: File) {
+  if (!canWriteExtensions()) {
+    throw new Error('Extension installer is disabled. Set EXTENSIONS_WRITE_ENABLED=true to enable filesystem installation.');
+  }
+
+  if (!file.name.toLowerCase().endsWith('.zip')) {
+    throw new Error('Please upload a valid .zip file.');
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const baseName = file.name.replace(/\.zip$/i, '');
+  return installExtensionFromBuffer(buffer, baseName, `upload:${file.name}`);
+}
+
+export async function installExtensionFromUrl(url: string) {
+  if (!canWriteExtensions()) {
+    throw new Error('Extension installer is disabled. Set EXTENSIONS_WRITE_ENABLED=true to enable filesystem installation.');
+  }
+
+  const buffer = await downloadArchiveBuffer(url);
+  const parsed = new URL(url);
+  const baseName =
+    parsed.pathname.split('/').filter(Boolean).pop()?.replace(/\.zip$/i, '') ?? 'remote-extension';
+  return installExtensionFromBuffer(buffer, baseName, parsed.toString());
 }
 
 export function setExtensionEnabled(id: string, enabled: boolean) {
@@ -267,4 +321,48 @@ export function uninstallExtension(id: string) {
   const extension = getExtensionById(id);
   rmSync(extension.directoryPath, { recursive: true, force: true });
   return { success: true, id };
+}
+
+export type ReadyExtension = InstalledExtension & {
+  manifest: ExtensionManifest;
+  state: ExtensionLifecycleState;
+};
+
+export function listEnabledExtensions(): ReadyExtension[] {
+  return listInstalledExtensions().filter(
+    (item): item is ReadyExtension =>
+      item.status === 'ready' && item.manifest !== null && item.state?.enabled === true,
+  );
+}
+
+export type ExtensionRuntimeEntry = {
+  id: string;
+  name: string;
+  version: string;
+  kind: ExtensionManifest['kind'];
+  capabilities: string[];
+  entrypoints: NonNullable<ExtensionManifest['entrypoints']>;
+  directoryName: string;
+};
+
+export type ExtensionRuntimeIndex = {
+  apiVersion: string;
+  loadMode: 'metadata-only';
+  extensions: ExtensionRuntimeEntry[];
+};
+
+export function getExtensionRuntimeIndex(): ExtensionRuntimeIndex {
+  return {
+    apiVersion: CMS_EXTENSION_API_VERSION,
+    loadMode: 'metadata-only',
+    extensions: listEnabledExtensions().map((item) => ({
+      id: item.manifest.id,
+      name: item.manifest.name,
+      version: item.manifest.version,
+      kind: item.manifest.kind,
+      capabilities: item.manifest.capabilities ?? [],
+      entrypoints: item.manifest.entrypoints ?? {},
+      directoryName: item.directoryName,
+    })),
+  };
 }

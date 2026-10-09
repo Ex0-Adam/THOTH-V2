@@ -37,6 +37,9 @@ yarn-error.log*
 # uploaded media (user content — ห้าม commit)
 /public/uploads/
 
+# extension install staging (transient)
+/tmp/
+
 # logs
 *.log
 

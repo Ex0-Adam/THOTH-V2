@@ -3,11 +3,16 @@ import path from 'node:path';
 
 export const CMS_EXTENSION_API_VERSION = '1';
 
+export const EXTENSION_KINDS = ['module', 'template', 'theme'] as const;
+
+export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
+
 export type ExtensionManifest = {
   id: string;
   name: string;
   version: string;
   apiVersion: string;
+  kind?: ExtensionKind;
   description?: string;
   author?: string;
   website?: string;
@@ -39,11 +44,15 @@ export function validateExtensionManifest(raw: unknown, directoryPath?: string) 
   }
 
   const candidate = raw as Record<string, unknown>;
+  const kindCandidate = isNonEmptyString(candidate.kind) ? String(candidate.kind).trim() : undefined;
   const manifest: ExtensionManifest = {
     id: String(candidate.id ?? '').trim(),
     name: String(candidate.name ?? '').trim(),
     version: String(candidate.version ?? '').trim(),
     apiVersion: String(candidate.apiVersion ?? '').trim(),
+    kind: EXTENSION_KINDS.includes(kindCandidate as ExtensionKind)
+      ? (kindCandidate as ExtensionKind)
+      : undefined,
     description: isNonEmptyString(candidate.description) ? String(candidate.description).trim() : undefined,
     author: isNonEmptyString(candidate.author) ? String(candidate.author).trim() : undefined,
     website: isNonEmptyString(candidate.website) ? String(candidate.website).trim() : undefined,
@@ -75,6 +84,10 @@ export function validateExtensionManifest(raw: unknown, directoryPath?: string) 
 
   if (manifest.apiVersion && manifest.apiVersion !== CMS_EXTENSION_API_VERSION) {
     errors.push(`Unsupported apiVersion '${manifest.apiVersion}'. Expected '${CMS_EXTENSION_API_VERSION}'.`);
+  }
+
+  if (kindCandidate && !EXTENSION_KINDS.includes(kindCandidate as ExtensionKind)) {
+    errors.push(`Unsupported kind '${kindCandidate}'. Expected one of: ${EXTENSION_KINDS.join(', ')}.`);
   }
 
   const capabilitySet = new Set<string>();
