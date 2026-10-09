@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardApiSession } from "@/lib/security/api-policy";
 import { getCurrentUser } from "@/lib/auth";
+import { sanitizePageHtml } from "@/lib/content/sanitize";
 
 // GET: ดึงหน้าเพจ (ผู้ไม่ล็อกอินเห็นเฉพาะที่ publish แล้ว)
 export async function GET() {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
       data: {
         title,
         slug,
-        content,
+        content: sanitizePageHtml(content),
         isPublished: isPublished ?? true,
       },
     });

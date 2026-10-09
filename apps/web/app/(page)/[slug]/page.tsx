@@ -125,7 +125,7 @@ export default async function DynamicPage({ params }: PageProps) {
                 })}
               </time>
             </header>
-            <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: page.content || "" }} />
+            <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: sanitizePageHtml(page.content) }} />
           </article>
         </main>
       </div>

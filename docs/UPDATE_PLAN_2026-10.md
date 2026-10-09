@@ -1,25 +1,29 @@
 # แผนอัปเดต THOTH — ทุกภาคส่วน (เตรียมงาน)
 
 > จัดทำ: **2026-10-08 โดย ฌอน (opencode)** จากการตรวจสอบโค้ดจริงทั้งโปรเจกต์
-> สถานะเอกสาร (อัปเดต 2026-10-09): **ทำแล้วบางส่วน** — เฟส 1 ทำ 5/8 (1.1, 1.2, 1.3, 1.6, 1.8), เฟส 5 ทำแล้วทั้งหมด, เฟส 6.1 มี `node --test` 30 tests แล้ว; **เฟส 2, 3, 4, 7 ยังไม่เริ่ม** — งานที่เหลือยังรอพี่ฆังอนุมัติทุกข้อ
+> สถานะเอกสาร (reconcile **2026-10-10** เทียบ `docs/FEATURE_MODULE_ROADMAP_2026-10.md` §0): **ทำแล้วบางส่วน** — เฟส 1 ทำ 6/8 (✅ 1.1, 1.2, 1.3, 1.6, 1.8 · ⚠️ 1.5 auth+rate limit แล้ว แต่ "ตรวจ content ซ้ำ" ยังไม่ยืนยัน · ❌ 1.4 login rate limit, 1.7 sanitizer ยังไม่ทำ), เฟส 2 เหลือเฉพาะงานที่ต้องเลือกทาง, เฟส 3 ทำ 3.1/3.3, เฟส 5 ทำทั้งหมด, เฟส 6.1 = `node --test` **59 tests**, เฟส 7 = มี repo แล้ว; **เฟส 2 (ทางเลือก), 4 ยังไม่เริ่ม** — งานที่เหลือยังรอพี่ฆังอนุมัติทุกข้อ
+> แผน Core ระยะต่อไป (ความปลอดภัย/โครงสร้าง) อยู่ที่ `docs/FEATURE_MODULE_ROADMAP_2026-10.md` (เฟส 8–9) — **ยังไม่อนุมัติ implementation รายเฟส**
 > อ้างอิงปัญหา: ดู `AGENTS.md` ข้อ 3 (P0–P3)
 > ⚠️ กฎบังคับ: ห้ามเริ่มเฟสใดโดยไม่ได้รับอนุมัติ · ห้ามแก้ `.env.local` · ห้าม commit/push
 
 ---
 
-## 0. Baseline ที่วัดได้ (2026-10-08)
+## 0. Baseline (วัด 2026-10-08 · reconcile 2026-10-10)
 
 | รายการ | ผลลัพธ์จริง |
 | --- | --- |
 | `npm ci` | ผ่าน (645 packages) — แต่ npm 12 block install-scripts → ต้องรัน `npx prisma generate` เอง |
 | `npx tsc --noEmit` | ✅ exit 0 |
 | `npm run build` | ✅ exit 0 |
-| `npm run lint` | ❌ 30 errors / 22 warnings |
-| git | ❌ ไม่ใช่ repo (ไม่มี `.git`, ไม่มี remote) |
-| การทดสอบ | ⚠️ วัด 2026-10-08 = ไม่มีเลย · **อัปเดต 2026-10-09 = มีแล้ว 30 tests (`node --test tests/*.test.mjs`)** |
-| หน้า public พัง | `/products`, `/dashboard` เรียก `/api/products` ที่ไม่มีอยู่ |
+| `npm run lint` | ✅ 0 errors / 20 warnings (reconcile 2026-10-10; เดิม 30 errors / 22 warnings) |
+| git | ✅ repo (init 2026-10-09) — commit แรก `a6eeca1` · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (LAN) · **ไม่ push** |
+| การทดสอบ | ✅ **59 tests** ผ่าน (`node --test tests/*.test.mjs` — 7 ไฟล์); วัด 2026-10-08 = ไม่มีเลย |
+| API route files | 30 (`app/api/**/route.ts`) |
+| หน้า public พัง | ⚠️ **ยังไม่แก้** — `app/products/page.tsx:23` + `app/dashboard/page.tsx:20` เรียก `/api/products` ที่ไม่มีอยู่ (ไม่มี `app/api/products/`) |
 
 **เป้าหมายรวม:** ทำให้ lint ผ่าน, ปิดช่องโหว่ P0, ให้เอกสาร/โค้ด/DB ตรงกัน, มี test อย่างน้อย smoke, มี git repo + remote ตามที่พี่ฆังสั่ง
+
+> **Baseline ที่เป็นทางการ (2026-10-10):** ดู `docs/FEATURE_MODULE_ROADMAP_2026-10.md` §0 — ลำดับงาน Core = baseline → XSS → migration strategy → Webhooks → RBAC → Revision (ต้องทวนขอบเขตและรออนุมัติเป็นรายเฟส)
 
 ---
 
@@ -31,9 +35,9 @@
 | 1.2 | ขยาย `proxy.ts` matcher ให้ครอบ `/api/*` ด้วย (หรือย้ายการตรวจไปฝั่ง handler ล้วน — เลือกทางเดียวให้ชัด) | `proxy.ts` | ✅ 2026-10-09 — ทั้งคู่: proxy matcher มี `/api/:path*` + handler-level guard |
 | 1.3 | เปลี่ยน session จาก `user.id` เปล่า → token ที่เซ็นด้วย `SESSION_SECRET` (HMAC หรือ JWT) + ตรวจ expiry ฝั่ง server | `lib/auth.ts`, `proxy.ts` | ✅ 2026-10-09 — `signSessionToken` (ขาด `SESSION_SECRET` → throw) |
 | 1.4 | เพิ่ม rate limit + lockout ที่ `POST /api/auth/login` (ตอนนี้ brute-force ได้ไม่จำกัด) | `app/api/auth/login/route.ts` | ❌ ยังไม่ทำ (ตรวจซ้ำ 2026-10-09: ไม่มี rate/lockout ใน route) |
-| 1.5 | `POST /api/upload`: ต้อง auth + จำกัดจำนวน/ความถี่ + ตรวจ content ซ้ำ | `app/api/upload/route.ts` | ⚠️ auth แล้ว (`guardApiSession`) — **rate limit ยังไม่มี** (2026-10-09) |
+| 1.5 | `POST /api/upload`: ต้อง auth + จำกัดจำนวน/ความถี่ + ตรวจ content ซ้ำ | `app/api/upload/route.ts` | ⚠️ auth ✅ + **rate limit แล้ว 2026-10-09** (`lib/security/rate-limit.ts`, `tests/rate-limit.test.mjs`); "ตรวจ content ซ้ำ" ยังไม่ยืนยัน |
 | 1.6 | `AUTOMATION_CRON_SECRET`: บังคับตั้งค่า (ถ้าว่าง → ปฏิเสธทุก request) + เพิ่มลง `.env.example` | `app/api/admin/automation/cron/route.ts`, `.env.example` | ✅ 2026-10-09 — `isCronAuthorized` fail-closed + key อยู่ใน `.env.example` แล้ว |
-| 1.7 | Sanitize HTML ก่อน render (`dangerouslySetInnerHTML` ใน `app/[slug]/page.tsx`) — ใช้ sanitizer ฝั่ง server ตอนบันทึก หรือตอน render | `app/[slug]/page.tsx` + จุดอื่นที่เจอ | ❌ ยังไม่ทำ — **แยก รอพี่ฆังตัดสิน** (ดู `AGENTS.md` ข้อ 4) |
+| 1.7 | Sanitize HTML ก่อน render (`dangerouslySetInnerHTML` ใน `app/[slug]/page.tsx`) — ใช้ sanitizer ฝั่ง server ตอนบันทึก หรือตอน render | `app/[slug]/page.tsx` + จุดอื่นที่เจอ | ❌ ยังไม่ทำ — **ยกระดับเป็น Core เฟส 8.1** (`docs/FEATURE_MODULE_ROADMAP_2026-10.md`) — รอพี่ฆังตัดสินแนวทาง |
 | 1.8 | เพิ่ม `APP_ENCRYPTION_KEY` ลง `.env.example` + ตรวจตอน startup ว่ามีค่า (ตอนนี้ automation บันทึก key จะ throw) | `.env.example`, `lib/security/secrets.ts` | ✅ 2026-10-09 — อยู่ใน `.env.example` แล้ว |
 
 **อนุมัติเฉพาะเฟส 1 ก่อน** แล้วค่อยไปเฟส 2 — เพราะ 1.1–1.3 เปลี่ยนพฤติกรรม auth ทั้งระบบ
@@ -47,7 +51,7 @@
 | 2.1 | `/products` + `/dashboard` พัง (เรียก API ที่ไม่มี) | **(ก)** สร้าง `Product` model + `/api/products` + `/api/dashboard/stats` ให้ตรงที่โฆษณา หรือ **(ข)** ลบหน้า `app/products`, `app/dashboard` + ตัดคำโปรโมท Products ออกจาก README/CHANGELOG |
 | 2.2 | `frontend/` เป็น dead code 1,877 LOC | **(ก)** ลบ (ขอล่วงหน้า) **(ข)** ย้ายของที่ยังใช้เข้า `app/` แล้วลบ **(ค)** ปล่อยไว้ + ตัดออกจาก tsconfig/eslint ไม่ให้เป็นภาระ |
 | 2.3 | `modules/` มีแค่ `staff-member` แต่ README อ้าง `projects/products/staff/pages` | ปรับ `MODULE_STANDARD.md` + README ให้ตรง หรือ scaffold module ที่ขาด |
-| 2.4 | `extensions/` ยังไม่มี extension จริง | สร้าง extension ตัวอย่างอย่างน้อย 1 ตัว หรือยอมรับว่ายังเป็น scaffold |
+| 2.4 | `extensions/` ยังไม่มี extension จริง | ✅ มีตัวอย่างแล้ว `extensions/hello-module/` (commit `a67193e`, 2026-10-10) — ยังไม่มี hot-load runtime; ดู `docs/MODULE_STANDARD.md` |
 | 2.5 | Rich-text editor เป็น contentEditable เขียนเอง (262 บรรทัด) — ไม่มี sanitization | ประเมินแทน: คงไว้ + เพิ่ม sanitize ตอนบันทึก, หรือสลับเป็น library ที่ maintain |
 
 ---
@@ -56,9 +60,9 @@
 
 | # | งาน | หมายเหตุ |
 | --- | --- | --- |
-| 3.1 | แก้ชื่อ S3 env ให้ตรงกัน: `.env.example` `AWS_S3_*` ↔ โค้ด `S3_*` | เลือกชื่อเดียวทั้งระบบ + อัปเดต `.env.example`, README, ENV_SETUP |
+| 3.1 | แก้ชื่อ S3 env ให้ตรงกัน: `.env.example` `AWS_S3_*` ↔ โค้ด `S3_*` | ✅ 2026-10-10 — `.env.example` ใช้ `S3_*` + `STORAGE_DRIVER`/`LOCAL_UPLOAD_URL_BASE` แล้ว (ดู `AGENTS.md` ข้อ 10) |
 | 3.2 | ตัด dependency ที่ไม่ใช้ 6 ตัว: `admin-lte`, `bootstrap`, `jquery`, `popper.js`, `@uiw/react-markdown-preview`, `@uiw/react-md-editor` | ตรวจซ้ำก่อนลบ แล้ว `npm ci` + `build` ใหม่ |
-| 3.3 | ลบ env ที่โค้ดไม่ใช้ (`SMTP_*`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `SESSION_SECRET` → พอ 1.3 ทำแล้วจะถูกใช้จริง) | — |
+| 3.3 | ลบ env ที่โค้ดไม่ใช้ (`SMTP_*`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `SESSION_SECRET` → พอ 1.3 ทำแล้วจะถูกใช้จริง) | ✅ 2026-10-10 ฝั่ง `.env.example` (ดู `AGENTS.md` ข้อ 13) · ⚠️ `.env.local` ยังมีขยะค้าง — รอพี่ฆังสั่ง cleanup (ข้อ 11) |
 | 3.4 | แก้ `vercel.json`: เอา `env`, `nodeVersion`, `buildEnvironment` ออก (ไม่อยู่ใน schema ปัจจุบันของ Vercel) → ย้ายไป Project Settings | อ้าง docs vercel.com/docs/project-configuration (2026-08-25) |
 | 3.5 | เพิ่ม `"engines": { "node": ">=20" }` ใน `package.json` + ปรับ README ให้ Node 20+ ตรงกัน | ตรงกับ Next 16 |
 | 3.6 | `Dockerfile`: เพิ่ม `frontend/` ถ้า 2.2 เลือก "เก็บ" และพิจารณาไม่ COPY source ทั้งหมดใน runner stage | — |
@@ -92,7 +96,7 @@
 
 | # | งาน |
 | --- | --- |
-| 6.1 | ✅ ทำแล้ว (2026-10-09): ใช้ `node --test` (ไม่ใช่ Vitest) + script `test` ใน `package.json` — **30 tests ผ่าน** (`tests/route-policy.test.mjs` + `tests/session.test.mjs`) |
+| 6.1 | ✅ ทำแล้ว (2026-10-09, นับซ้ำ 2026-10-10): ใช้ `node --test` (ไม่ใช่ Vitest) + script `test` ใน `package.json` — **59 tests ผ่าน** (7 ไฟล์: `route-policy`, `session`, `rate-limit`, `cors-policy`, `cron-auth`, `extension-url-guard`, `template-policy`) |
 | 6.2 | Unit: `lib/auth`, `lib/security/secrets`, `lib/storage`, `lib/automation/helpers` |
 | 6.3 | Integration/API smoke: login, CRUD page/project พร้อม assert 401 เมื่อไม่มี session (พิสูจน์เฟส 1) |
 | 6.4 | E2E smoke (Playwright): `/` → `/login` → `/admin` → สร้าง Page → ดูหน้า public |

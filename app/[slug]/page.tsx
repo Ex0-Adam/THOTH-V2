@@ -4,6 +4,7 @@ import { getPageBySlug } from "@/lib/page-data";
 import { getSiteConfig } from "@/lib/site-config-data";
 import { getAllMenuItems, MenuItem } from "@/lib/menu-data";
 import { NavLink, SidebarLink } from "@/components/nav-link";
+import { sanitizePageHtml } from "@/lib/content/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +92,7 @@ export default async function DynamicPage({ params }: PageProps) {
                <h1 className="text-5xl" style={{ color: config.textColor }}>{page.title}</h1>
                <time className="text-[10px] font-bold opacity-30 mt-2 uppercase tracking-widest">{new Date(page.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}</time>
              </header>
-             <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: page.content || '' }} />
+             <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: sanitizePageHtml(page.content) }} />
           </article>
         </main>
       </div>

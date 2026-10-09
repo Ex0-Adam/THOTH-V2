@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardApiSession } from "@/lib/security/api-policy";
+import { sanitizePageHtml } from "@/lib/content/sanitize";
 import { getCurrentUser } from "@/lib/auth";
 
 // GET: ดึงข้อมูลหน้าเพจ (รองรับทั้ง ID และ Slug; ผู้ไม่ล็อกอินเห็นเฉพาะที่ publish แล้ว)
@@ -45,7 +46,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       data: {
         title,
         slug,
-        content,
+        content: sanitizePageHtml(content),
         isPublished,
       },
     });

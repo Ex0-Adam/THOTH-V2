@@ -13,7 +13,7 @@
 | --- | --- |
 | ชื่อ | `thoth` (branding ในโค้ด/README ยังเขียน "Micro Headless CMS" / "Micro Headless-CMS-Product") |
 | เวอร์ชัน | `2.0.0-beta.1` (bump จาก 1.0.0-beta.1 เมื่อ 2026-10-09; release เดิม: 11 เม.ย. 2026) |
-| ชนิด | Headless CMS + Admin Console + Public pages ใน Next.js App Router เดียว |
+| ชนิด | Headless CMS + Admin Console (root) + public web แยกที่ `apps/web/` — ยังอยู่ monorepo เดียว (ยังไม่ cutover หน้า public เดิม) |
 | Stack | Next.js **16.2.0**, React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
 | Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
@@ -60,18 +60,20 @@ THOTH/
 ├── components/             4 ไฟล์ (admin/page-header, page-wrapper, rich-text-editor, nav-link)
 ├── modules/staff-member/   3 ไฟล์ · 698 LOC      ← module เดียวที่มี (wired ด้วย direct import ไม่ใช่ hot-load)
 ├── frontend/               11 ไฟล์ · 1,877 LOC   ← ⚠️ DEAD CODE (ดูข้อ 3)
-├── extensions/             มีแค่ README + extension.schema.json (ยังไม่มี extension จริง)
-├── templates/              README.md + template.schema.json + lib/templates/* (registry/validator) ← P4, ยังไม่มี template จริง
+├── apps/web/               22 ไฟล์ tracked · public Next.js app แยก build/deploy ← ขั้น 0/A/B/C แล้ว, D/E ยังไม่เริ่ม (`(site)/{home,products,projects}` + `(page)/[slug]`)
+├── extensions/             README + extension.schema.json + ตัวอย่าง `hello-module/` (commit `a67193e` 2026-10-10) — ยังไม่มี hot-load runtime
+├── templates/              README + template.schema.json + ตัวอย่าง `aurora/` + lib/templates/* (registry/validator) ← P4
 ├── scripts/                create-extension.mjs, update-legal-content.ts
 ├── prisma/schema.prisma    ไฟล์เดียว ไม่มี prisma/migrations/
-├── docs/                   MODULE_STANDARD.md, TEMPLATE_STANDARD.md, SELF_HOSTING.md, UPDATE_PLAN_2026-10.md, SPLIT_HEADLESS_PLAN_2026-10.md
+├── docs/                   MODULE_STANDARD.md, TEMPLATE_STANDARD.md, SELF_HOSTING.md, UPDATE_PLAN_2026-10.md, SPLIT_HEADLESS_PLAN_2026-10.md, FEATURE_MODULE_ROADMAP_2026-10.md
 ├── public/, data/projects.json
 └── *.md ระดับ root         11 ไฟล์ (จัดระเบียบแล้ว 2026-10-09 — ดูข้อ 18)
 ```
 
 ### Route ที่ build ได้จริง
 
-- **Public:** `/`, `/products`, `/dashboard`, `/[slug]`, `/login`, `/setup`
+- **Public (root CMS — ยังไม่ cutover):** `/`, `/products`, `/dashboard`, `/[slug]`, `/login`, `/setup`
+- **Public web แยก (`apps/web/`):** `(site)/{home,products,projects}` + `(page)/[slug]` — build/deploy อิสระ, เรียก CMS ผ่าน `NEXT_PUBLIC_THOTH_API_URL`
 - **Admin:** `/admin` + 14 sub-pages (projects, staff, pages, categories, media, menu, configuration, design, automation, modules, templates, marketplace, database, change-password)
 - **API:** auth(4) · pages(2) · projects(2) · categories(2) · staff(2) · menu-items(2) · site-config(1) · templates/active(1) · upload(1) · system/bootstrap(1) · admin/*(12)
 
@@ -159,8 +161,9 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 | มาตรฐาน template/theme | **`docs/TEMPLATE_STANDARD.md`**, `templates/README.md`, `templates/template.schema.json` |
 | Self-hosting | `docs/SELF_HOSTING.md`, `INSTALLATION_GUIDE.md`, `DEPLOYMENT.md` |
 | ประวัติ beta | `CHANGELOG.md`, `RELEASE_NOTES.md` |
-| แผนอัปเดตถัดไป | **`docs/UPDATE_PLAN_2026-10.md`** (7 เฟส) ← สร้างพร้อมไฟล์นี้ |
-| แผนแยกส่วน core/หน้าเว็บ | **`docs/SPLIT_HEADLESS_PLAN_2026-10.md`** (ขั้น A–E) ← สร้าง 2026-10-08 |
+| แผนอัปเดตถัดไป | **`docs/UPDATE_PLAN_2026-10.md`** (7 เฟส) ← สร้างพร้อมไฟล์นี้ (reconcile 2026-10-10) |
+| แผนแยกส่วน core/หน้าเว็บ | **`docs/SPLIT_HEADLESS_PLAN_2026-10.md`** (ขั้น A–E) ← สร้าง 2026-10-08 · ขั้น 0/A/B/C แล้ว, D/E ยังไม่เริ่ม |
+| **แผน Core ระยะต่อไป (8–9)** | **`docs/FEATURE_MODULE_ROADMAP_2026-10.md`** ← เสนอโดยอัล/ธาร 2026-10-10 (พี่ฆังรับทราบทิศทาง) — Core-only + readiness gate; **ยังไม่อนุมัติ implementation รายเฟส** |
 | Marketplace link (P2) | `SiteConfig.marketplaceUrl` · `app/admin/marketplace/page.tsx` · `NEXT_PUBLIC_MARKETPLACE_URL` · prod: `https://micro-marketplace-iota.vercel.app` |
 | Env ตัวอย่าง | `.env.example` (เรียบร้อย 2026-10-10 — ข้อ 10/12/13 ปิดแล้ว, ข้อ 11 เหลือรอ cleanup `.env.local`) |
 
@@ -177,7 +180,7 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 
 ### Template/theme registry (P4 — เสร็จ 2026-10-09)
 
-- **`templates/`** เก็บ theme pack ที่ติดตั้ง (ZIP) — ยังไม่มี template จริงบนดิสก์; มาตรฐาน/สคีมา: `docs/TEMPLATE_STANDARD.md`, `templates/template.schema.json`
+- **`templates/`** เก็บ theme pack ที่ติดตั้ง (ZIP) — มีตัวอย่าง `templates/aurora/` แล้ว (commit `a67193e`, 2026-10-10); มาตรฐาน/สคีมา: `docs/TEMPLATE_STANDARD.md`, `templates/template.schema.json`
 - **`lib/templates/`** = `validator.ts` (manifest/tokens, `CMS_TEMPLATE_API_VERSION='1'`) + `registry.ts` (install ZIP/URL, active state ที่ `templates/.cms-template-state.json`, `loadMode: 'metadata-only'` — ไม่ execute โค้ดที่อัปโหลด)
 - **สถาปัตยกรรมเดียวกับ extensions:** เขียนได้เฉพาะเมื่อ `TEMPLATES_WRITE_ENABLED=true`; ดาวน์โหลด URL ผ่าน SSRF guard เดียวกัน (`lib/extensions/url-guard.ts`, `EXTENSIONS_ALLOWED_HOSTS`); แตก ZIP ผ่าน `lib/archive/safe-zip.ts` (ใช้ร่วมกับ extensions)
 - **API:** `GET|POST /api/admin/templates` (JSON `{url}` หรือ multipart), `GET|PATCH|DELETE /api/admin/templates/[id]` (guarded), และ **public `GET /api/templates/active`** คืน design tokens เท่านั้น (ไม่ expose path; fallback `{active:false, tokens:{}}`)
@@ -188,7 +191,7 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 - มาตรฐาน/ข้อกำหนดโมดูล: **`docs/MODULE_STANDARD.md`** (required structure, manifest contract, API/data-access/admin-UI rules, compatibility, security)
 - ของที่มีจริงบนดิสก์ตอนนี้:
   - `modules/staff-member/` — module เดียวที่ wired เข้าโค้ดแล้ว (3 ไฟล์, direct import ไม่ใช่ hot-load)
-  - `npm run scaffold:module -- --id=<id> --name=<ชื่อ>` → สร้าง `extensions/<id>/{admin,api,hooks}` + manifest (`scripts/create-extension.mjs`) — **`extensions/` ยังไม่มี extension จริง ยังไม่มี hot-load runtime**
+  - `npm run scaffold:module -- --id=<id> --name=<ชื่อ>` → สร้าง `extensions/<id>/{admin,api,hooks}` + manifest (`scripts/create-extension.mjs`) — มีตัวอย่าง `extensions/hello-module/`; **ยังไม่มี hot-load runtime**
 - เมื่อเพิ่มโมดูลใหม่ บังคับตามนี้:
   1. data model → เพิ่มใน `prisma/schema.prisma` แล้วรัน `npx prisma generate` เอง (postinstall ถูก block) + อัปเดต `PRODUCT_CMS_SETUP.sql` ให้ตรง (ข้อ 9)
   2. public read API → ต้องมี **whitelist ชัดเจน** แบบเดียวกับ `PUBLIC_PROJECT_SELECT` และเพิ่ม test policy ใน `tests/route-policy.test.mjs`

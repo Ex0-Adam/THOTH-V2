@@ -1,7 +1,8 @@
 # แผนแยก THOTH CMS และ Public Web
 
 > ปรับแผน: **2026-10-08 โดย ธาร (Copilot)**  
-> สถานะ: **ดำเนินการถึงขั้น C แล้ว (ตรวจ 2026-10-09) — ขั้น 0/A/B/C เสร็จและผ่านเกณฑ์, ขั้น D/E ยังไม่เริ่ม**  
+> สถานะ: **ดำเนินการถึงขั้น C แล้ว (ตรวจ 2026-10-09 · ยืนยันซ้ำ 2026-10-10) — ขั้น 0/A/B/C เสร็จและผ่านเกณฑ์, ขั้น D/E ยังไม่เริ่ม**  
+> ยืนยัน 2026-10-10: `apps/web/` มีจริง (`(site)/{home,products,projects}` + `(page)/[slug]`) แต่ยัง **ไม่ cutover** หน้า public ที่ root (`app/{page,products,dashboard,[slug]}` ยังอยู่ครบ); `apps/web/` ไม่มี `.git` ของตัวเองและถูก track โดย root repo (ยัง monorepo)  
 > มติ: คง CMS/Admin/API ที่ repository root และแยก public web เป็นแอป deployable อิสระใน `apps/web/`; พิจารณาแยก repository ภายหลัง  
 > แผนนี้แทนแนวทางเดิมที่เสนอแค่ route groups หรือแยก API กับ Admin UI ออกจากกัน
 
@@ -9,7 +10,7 @@
 
 - โครงการเป็น Next.js App Router แอปเดียว: มีหน้า public, Admin UI, API, Prisma และ service logic อยู่ใน repository เดียวกัน
 - `lib/` มี Prisma connection และ service/data modules; แต่ `app/admin/page.tsx` ยัง query Prisma โดยตรง
-- API มี 27 route files; public/admin read กับ write operations ยังไม่ได้แยก security policy อย่างครบถ้วน
+- API มี 30 route files (`app/api/**/route.ts`); public/admin read กับ write operations ยังไม่ได้แยก security policy อย่างครบถ้วน
 - Client UI มีการเรียก API ด้วย relative URL `/api/...`; public web ที่แยก origin จึงต้องมี API base URL กลาง
 - Server-rendered public slug page ใช้ service/Prisma โดยตรง จึงต้องเปลี่ยนเป็นเรียก public API หลังย้ายไป `apps/web/`
 - พบ relative imports เข้า `lib/` จาก API 3 จุด; เปลี่ยนเป็น alias เป็นส่วนของการจัดเส้นเขต
@@ -120,11 +121,11 @@ THOTH repository
 - **Dashboard:** ไม่ย้าย — คงใน CMS (ยังเรียก endpoint ที่ไม่มีจริง)
 - **Public routes ชุดแรก:** `/`, `/projects`, `/{slug}` (published เท่านั้น) → `apps/web/`; หน้า `/{slug}` กรอง `isPublished` ที่ API และตรวจซ้ำที่หน้า (anon เจอ draft = 404)
 - **Projects = public by design (มติ 2026-10-09):** THOTH เป็น open source — รายได้มาจากขายโมดูลและหน้าเว็บ ดังนั้น `GET /api/projects` อ่านทุก Project ได้เสมอ **ไม่มี draft flag โดยเจตนา** และ **field whitelist (`PUBLIC_PROJECT_SELECT`) คงไว้เสมอ** เป็นขอบเขตการเปิดเผยข้อมูล — บันทึกใน `AGENTS.md` section 6 และล็อกด้วย `tests/route-policy.test.mjs` (ห้ามถือว่าการไม่มีสถานะเผยแพร่เป็นข้อบกพร่อง)
-- **ยังแยกจากมตินี้ (รอคำสั่ง):** HTML sanitization ของ `page.content` ก่อนแสดงผลสาธารณะ; cutover ถอดหน้า public เดิมออกจาก CMS (ขั้น D)
+- **ยังแยกจากมตินี้ (รอคำสั่ง):** HTML sanitization ของ `page.content` ก่อนแสดงผลสาธารณะ (= Core เฟส 8.1 ใน `docs/FEATURE_MODULE_ROADMAP_2026-10.md`); cutover ถอดหน้า public เดิมออกจาก CMS (ขั้น D)
 
 ## 5. ข้อจำกัดด้านการดำเนินงาน
 
-- เอกสารนี้เป็นแผนเท่านั้น ณ เวลาปรับปรุง; ยังไม่ได้ย้ายหรือสร้าง source code ของแอปใด
+- เอกสารนี้เป็นแผน/สถานะ; ขั้น 0/A/B/C สร้าง source ของ `apps/web/` แล้ว — **ขั้น D/E (integration test, deploy แยก, cutover) ยังไม่เริ่ม**
 - ไม่แก้ `.env.local`, ไม่พิมพ์ secret และไม่คัดลอก secret ข้ามแอป
 - ไม่ลบ `frontend/` หรือข้อมูลเดิม; การถอด public routes เดิมทำหลัง cutover ผ่านการทดสอบ
 - ไม่ deploy production จนกว่า security blockers ในขั้น 0 ถูกปิดและตรวจสอบแล้ว
