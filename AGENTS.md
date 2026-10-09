@@ -47,21 +47,22 @@ npm run scaffold:module -- --id=... --name=...   # scripts/create-extension.mjs
 
 ```
 THOTH/
-├── app/                    52 ไฟล์ · 5,141 LOC   ← App Router ตัวจริง (สิ่งนี้รันได้)
-│   ├── admin/              13 หน้า admin (client components ทั้งหมด)
-│   ├── api/                27 route.ts · 1,037 LOC
+├── app/                    56 ไฟล์ · 6,380 LOC   ← App Router ตัวจริง (สิ่งนี้รันได้) [นับ 2026-10-09]
+│   ├── admin/              15 หน้า admin = /admin + 14 sub-pages (client components ทั้งหมด)
+│   ├── api/                30 route.ts · 1,344 LOC
 │   ├── page.tsx / products/ / dashboard/ / [slug]/   ← หน้า public
 │   ├── login/ setup/       auth pages
 │   └── globals.css         Tailwind 4 (`@import "tailwindcss"`)
 ├── proxy.ts                Next 16 middleware (ชื่อ proxy ไม่ใช่ middleware) — build ขึ้น "ƒ Proxy (Middleware)"
-├── lib/                    19 ไฟล์ · 1,413 LOC   ← auth, prisma, storage, automation, extensions, security
+├── lib/                    28 ไฟล์ · 2,518 LOC   ← auth, prisma, storage, automation, extensions, templates, archive, security
 ├── components/             4 ไฟล์ (admin/page-header, page-wrapper, rich-text-editor, nav-link)
 ├── modules/staff-member/   3 ไฟล์ · 698 LOC      ← module เดียวที่มี (wired ด้วย direct import ไม่ใช่ hot-load)
 ├── frontend/               11 ไฟล์ · 1,877 LOC   ← ⚠️ DEAD CODE (ดูข้อ 3)
 ├── extensions/             มีแค่ README + extension.schema.json (ยังไม่มี extension จริง)
+├── templates/              README.md + template.schema.json + lib/templates/* (registry/validator) ← P4, ยังไม่มี template จริง
 ├── scripts/                create-extension.mjs, update-legal-content.ts
 ├── prisma/schema.prisma    ไฟล์เดียว ไม่มี prisma/migrations/
-├── docs/                   MODULE_STANDARD.md, SELF_HOSTING.md
+├── docs/                   MODULE_STANDARD.md, TEMPLATE_STANDARD.md, SELF_HOSTING.md, UPDATE_PLAN_2026-10.md, SPLIT_HEADLESS_PLAN_2026-10.md
 ├── public/, data/projects.json
 └── *.md ระดับ root         11 ไฟล์ (จัดระเบียบแล้ว 2026-10-09 — ดูข้อ 18)
 ```
@@ -69,8 +70,8 @@ THOTH/
 ### Route ที่ build ได้จริง
 
 - **Public:** `/`, `/products`, `/dashboard`, `/[slug]`, `/login`, `/setup`
-- **Admin:** `/admin` + 13 sub-pages (projects, staff, pages, categories, media, menu, configuration, design, automation, modules, marketplace, database, change-password)
-- **API:** auth(4) · pages(2) · projects(2) · categories(2) · staff(2) · menu-items(2) · site-config(1) · upload(1) · system/bootstrap(1) · admin/*(10)
+- **Admin:** `/admin` + 14 sub-pages (projects, staff, pages, categories, media, menu, configuration, design, automation, modules, templates, marketplace, database, change-password)
+- **API:** auth(4) · pages(2) · projects(2) · categories(2) · staff(2) · menu-items(2) · site-config(1) · templates/active(1) · upload(1) · system/bootstrap(1) · admin/*(12)
 
 ### Prisma models (11 ตัว)
 
@@ -103,7 +104,7 @@ THOTH/
 
 10. **ตัวแปร S3 ชื่อไม่ตรงกัน:** โค้ดเรียก `S3_ENDPOINT` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_BUCKET` / `S3_REGION` แต่ `.env.example` เขียน `AWS_S3_*` → **เอกสารใช้ไม่ได้จริง** (`lib/storage/s3.ts` throw ถ้าไม่ครบ)
 11. **`APP_ENCRYPTION_KEY` จำเป็นต่อ `lib/security/secrets.ts` แต่ไม่มีใน `.env.example` และ `.env.local`** → บันทึก Gemini API key ผ่าน `/api/admin/automation/config` จะ throw ตอน runtime
-12. **ตัวแปรที่โค้ดใช้แต่ไม่มีใน `.env.example` (อัปเดต 2026-10-09 — `APP_ENCRYPTION_KEY`, `AUTOMATION_CRON_SECRET` เพิ่มแล้ว):** `STORAGE_DRIVER`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`, `LOCAL_UPLOAD_URL_BASE`
+12. **ตัวแปรที่โค้ดใช้แต่ไม่มีใน `.env.example` (อัปเดต 2026-10-09 — `APP_ENCRYPTION_KEY`, `AUTOMATION_CRON_SECRET` เพิ่มแล้ว; เพิ่ม `TEMPLATES_DIR` + `TEMPLATES_WRITE_ENABLED` ในบล็อก Templates Configuration แล้ว):** `STORAGE_DRIVER`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PUBLIC_URL_BASE`, `LOCAL_UPLOAD_URL_BASE`
 13. **ตัวแปรใน `.env.example` ที่โค้ดไม่ได้ใช้ (`SESSION_SECRET` ตัดออกแล้ว — ถูกใช้จริง):** `SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `AWS_*`
 14. **`vercel.json` มี key ที่ไม่อยู่ใน schema ปัจจุบันของ Vercel** (เทียบ docs `vercel.com/docs/project-configuration` 2026-08-25): `env`, `nodeVersion`, `buildEnvironment` **ไม่ใช่ property ที่รองรับ** → ควรย้ายไป Project Settings / `.env`
 15. **Dependencies ที่ไม่ถูก import ที่ไหนเลย (ตรวจแล้ว 0 จุด):** `admin-lte`, `bootstrap`, `jquery`, `popper.js`, `@uiw/react-markdown-preview`, `@uiw/react-md-editor` (6 ตัว — editor จริงคือ `components/admin/rich-text-editor.tsx` ที่เขียนเองด้วย contentEditable)
@@ -153,6 +154,7 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 | --- | --- |
 | มาตรฐานหน้า frontend | `FRONTEND_STANDARD.md` (ยังไม่ได้ทำตามจริงทั้งหมด) |
 | มาตรฐาน module/extension | `docs/MODULE_STANDARD.md`, `extensions/README.md`, `extensions/extension.schema.json` |
+| มาตรฐาน template/theme | **`docs/TEMPLATE_STANDARD.md`**, `templates/README.md`, `templates/template.schema.json` |
 | Self-hosting | `docs/SELF_HOSTING.md`, `INSTALLATION_GUIDE.md`, `DEPLOYMENT.md` |
 | ประวัติ beta | `CHANGELOG.md`, `RELEASE_NOTES.md` |
 | แผนอัปเดตถัดไป | **`docs/UPDATE_PLAN_2026-10.md`** (7 เฟส) ← สร้างพร้อมไฟล์นี้ |
@@ -170,6 +172,14 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 - `Project` **ไม่มี flag draft/published โดยเจตนา** — ห้ามเพิ่ม flag หรือใส่เงื่อนไขกรอง draft กับ Project เพื่อ "ให้เหมือน Page" โดยไม่ผ่านมติใหม่ (คนละนโยบาย: **Page มี `isPublished` และ public API ต้องกรอง draft เสมอ**)
 - **field whitelist คงไว้เสมอ** — `PUBLIC_PROJECT_SELECT` ใน `lib/project-data.ts` (13 ฟิลด์ รวม `category`) คือ**ขอบเขตการเปิดเผยข้อมูล** ไม่ใช่กลไกซ่อน draft; แม้เนื้อหาจะ public ก็ต้องผ่าน whitelist เท่านั้น
 - Policy นี้ถูกล็อกจริงใน tests: `tests/route-policy.test.mjs` บังคับ (ก) ชุดฟิลด์ตรงกับ APPROVED list แบบเป๊ะ (ข) โมเดล `Project` ไม่มี publish flag — **แก้ policy ต้องแก้ไฟล์นี้ + ไฟล์ test คู่กันอย่างตั้งใจ**
+
+### Template/theme registry (P4 — เสร็จ 2026-10-09)
+
+- **`templates/`** เก็บ theme pack ที่ติดตั้ง (ZIP) — ยังไม่มี template จริงบนดิสก์; มาตรฐาน/สคีมา: `docs/TEMPLATE_STANDARD.md`, `templates/template.schema.json`
+- **`lib/templates/`** = `validator.ts` (manifest/tokens, `CMS_TEMPLATE_API_VERSION='1'`) + `registry.ts` (install ZIP/URL, active state ที่ `templates/.cms-template-state.json`, `loadMode: 'metadata-only'` — ไม่ execute โค้ดที่อัปโหลด)
+- **สถาปัตยกรรมเดียวกับ extensions:** เขียนได้เฉพาะเมื่อ `TEMPLATES_WRITE_ENABLED=true`; ดาวน์โหลด URL ผ่าน SSRF guard เดียวกัน (`lib/extensions/url-guard.ts`, `EXTENSIONS_ALLOWED_HOSTS`); แตก ZIP ผ่าน `lib/archive/safe-zip.ts` (ใช้ร่วมกับ extensions)
+- **API:** `GET|POST /api/admin/templates` (JSON `{url}` หรือ multipart), `GET|PATCH|DELETE /api/admin/templates/[id]` (guarded), และ **public `GET /api/templates/active`** คืน design tokens เท่านั้น (ไม่ expose path; fallback `{active:false, tokens:{}}`)
+- **`apps/web` consume:** `apps/web/lib/template.ts` → CSS variables (`--thoth-primary/accent/bg/text/font`) ผ่าน root layout; never-throws (ถ้า CMS ล่มยังเรนเดอร์ได้)
 
 ### ต้องรองรับการเพิ่มโมดูล (ขยายได้โดยไม่ต้อง fork โค้ด)
 
@@ -193,4 +203,4 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 
 ## 7. สรุปสถานะ 1 บรรทัด
 
-> **โค้ด build/typecheck/tests ผ่าน (npm test = 30 ผ่าน 2026-10-09) แต่ยังไม่พร้อมผลิต:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, git = commit แรกแล้ว + backup ลงดิส (**ไม่ต้อง push ไป gitea**) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+> **โค้ด build/typecheck/tests ผ่าน (npm test = 52 ผ่าน 2026-10-09) แต่ยังไม่พร้อมผลิต:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, git = commit แรกแล้ว + backup ลงดิส (**ไม่ต้อง push ไป gitea**) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
