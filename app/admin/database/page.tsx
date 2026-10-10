@@ -15,8 +15,12 @@ type BootstrapStatus = {
   message: string;
 };
 
+type BootstrapStatusWithFeatures = BootstrapStatus & {
+  features?: { secrets?: { ready: boolean; message: string } };
+};
+
 export default function DatabaseAdmin() {
-  const [status, setStatus] = useState<BootstrapStatus | null>(null);
+  const [status, setStatus] = useState<BootstrapStatusWithFeatures | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +32,9 @@ export default function DatabaseAdmin() {
     setLoading(true);
     try {
       const res = await fetch('/api/system/bootstrap', { cache: 'no-store' });
-      const payload = (await res.json()) as BootstrapStatus | { error?: string };
+      const payload = (await res.json()) as BootstrapStatusWithFeatures | { error?: string };
       if (!res.ok) throw new Error('error' in payload ? payload.error : 'Failed to inspect bootstrap state');
-      setStatus(payload as BootstrapStatus);
+      setStatus(payload as BootstrapStatusWithFeatures);
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -44,6 +48,7 @@ export default function DatabaseAdmin() {
     { label: 'Database reachable', value: status?.canConnect ?? false },
     { label: 'Schema applied', value: status?.schemaReady ?? false },
     { label: 'Admin setup pending', value: status?.needsSetup ?? false },
+    { label: 'Secret storage (APP_ENCRYPTION_KEY)', value: status?.features?.secrets?.ready ?? false },
   ];
 
   return (
@@ -66,7 +71,7 @@ export default function DatabaseAdmin() {
             </div>
           )}
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             {cards.map((card) => (
               <article key={card.label} className="rounded-[1.25rem] border border-white/35 bg-white/72 p-5 shadow-[0_20px_55px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
                 <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">{card.label}</p>
@@ -84,6 +89,12 @@ export default function DatabaseAdmin() {
               <p className="mt-4 text-sm leading-7 text-slate-600">
                 {loading ? 'Checking environment and schema status...' : status?.message ?? 'No status available.'}
               </p>
+
+              {status?.features?.secrets && !status.features.secrets.ready && (
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
+                  {status.features.secrets.message}
+                </p>
+              )}
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
