@@ -18,7 +18,7 @@
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
 | Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
 | Vercel | CLI 60.1.3 login **`ex0-adam`** (team `adam-project`) · project **`thoth-v2`** (id `prj_Prcs7H2WKxPNld0b60Zp9XnQNSYl`) **deploy แล้ว** — prod live **`https://thoth-v2.vercel.app`** (ผู้ deploy = ex0-adam; สุดท้าย redeploy 2026-10-09) · ไม่มี `.vercel/` ลิงก์ใน repo (link อยู่ `/tmp/opencode/vercel-thoth`) · **env บน project (Secret — อ่านค่าผ่าน CLI/API ไม่ได้):** `DATABASE_URL` `PRISMA_DATABASE_URL` `POSTGRES_URL` มาจาก Vercel integration store **`prisma-postgres-aero-compass`** (= product **Prisma Postgres**, region `sin1`, config `icfg_p9nGP4nSb3PHX3I8okzkkCup`) + **`SESSION_SECRET`** (เพิ่ม 2026-10-09, production+preview) · **prod DB apply schema แล้ว 2026-10-09** (`prisma db push` 12 ตาราง; DB ว่างเดิม) + seed admin `gridsdev.web@gmail.com` (`superadmin`, `mustChangePassword=false`) → **login verify = HTTP 200** · bootstrap prod = `{schemaReady:true, needsSetup:false}` · `vercel.json` อ้าง secret `@database_url`/`@app_url`/`@backend_url` = ของเก่า/ยังไม่ยืนยัน (env จริงมาจาก integration store) |
-| Test | **มีแล้ว (2026-10-09):** `npm test` = `node --test tests/*.test.mjs` — **129 tests** / 14 ไฟล์ (นับ 2026-10-10) |
+| Test | **มีแล้ว (2026-10-09):** `npm test` = `node --test tests/*.test.mjs` — **151 tests** / 14 ไฟล์ (นับ 2026-10-10) |
 | Python | ไม่มี (สอดคล้องกฎ #6 ✅) |
 
 ### คำสั่งที่ใช้ได้จริง (รันตรวจแล้ว)
@@ -52,19 +52,18 @@ THOTH/
 ├── app/                    56 ไฟล์ · 6,380 LOC   ← App Router ตัวจริง (สิ่งนี้รันได้) [นับ 2026-10-09]
 │   ├── admin/              15 หน้า admin = /admin + 14 sub-pages (client components ทั้งหมด)
 │   ├── api/                30 route.ts · 1,344 LOC
-│   ├── page.tsx / products/ / dashboard/ / [slug]/   ← หน้า public
+│   ├── page.tsx / [slug]/   ← หน้า public (products, dashboard ถูกลบ 2026-10-10)
 │   ├── login/ setup/       auth pages
 │   └── globals.css         Tailwind 4 (`@import "tailwindcss"`)
 ├── proxy.ts                Next 16 middleware (ชื่อ proxy ไม่ใช่ middleware) — build ขึ้น "ƒ Proxy (Middleware)"
 ├── lib/                    28 ไฟล์ · 2,518 LOC   ← auth, prisma, storage, automation, extensions, templates, archive, security
 ├── components/             4 ไฟล์ (admin/page-header, page-wrapper, rich-text-editor, nav-link)
 ├── modules/staff-member/   3 ไฟล์ · 698 LOC      ← module เดียวที่มี (wired ด้วย direct import ไม่ใช่ hot-load)
-├── frontend/               11 ไฟล์ · 1,877 LOC   ← ⚠️ DEAD CODE (ดูข้อ 3)
 ├── apps/web/               22 ไฟล์ tracked · public Next.js app แยก build/deploy ← ขั้น 0/A/B/C แล้ว, D/E ยังไม่เริ่ม (`(site)/{home,products,projects}` + `(page)/[slug]`)
 ├── extensions/             README + extension.schema.json + ตัวอย่าง `hello-module/` (commit `a67193e` 2026-10-10) — ยังไม่มี hot-load runtime
 ├── templates/              README + template.schema.json + ตัวอย่าง `aurora/` + lib/templates/* (registry/validator) ← P4
 ├── scripts/                create-extension.mjs, update-legal-content.ts
-├── prisma/schema.prisma    ไฟล์เดียว ไม่มี prisma/migrations/
+├── prisma/schema.prisma    ไฟล์เดียว + **prisma/migrations/20261010120000_init/** (baseline) ← 2026-10-10
 ├── docs/                   MODULE_STANDARD.md, TEMPLATE_STANDARD.md, SELF_HOSTING.md, UPDATE_PLAN_2026-10.md, SPLIT_HEADLESS_PLAN_2026-10.md, FEATURE_MODULE_ROADMAP_2026-10.md, EDITOR_RICH_TEXT_PLAN_2026-10.md
 ├── public/, data/projects.json
 └── *.md ระดับ root         11 ไฟล์ (จัดระเบียบแล้ว 2026-10-09 — ดูข้อ 18)
@@ -72,7 +71,7 @@ THOTH/
 
 ### Route ที่ build ได้จริง
 
-- **Public (root CMS — ยังไม่ cutover):** `/`, `/products`, `/dashboard`, `/[slug]`, `/login`, `/setup`
+- **Public (root CMS — ยังไม่ cutover):** `/`, `/[slug]`, `/login`, `/setup` (products, dashboard ถูกลบ 2026-10-10)
 - **Public web แยก (`apps/web/`):** `(site)/{home,products,projects}` + `(page)/[slug]` — build/deploy อิสระ, เรียก CMS ผ่าน `NEXT_PUBLIC_THOTH_API_URL`
 - **Admin:** `/admin` + 14 sub-pages (projects, staff, pages, categories, media, menu, configuration, design, automation, modules, templates, marketplace, database, change-password)
 - **API:** auth(4) · pages(2) · projects(2) · categories(2) · staff(2) · menu-items(2) · site-config(1) · templates/active(1) · upload(1) · system/bootstrap(1) · admin/*(12)
@@ -96,13 +95,9 @@ THOTH/
 
 ### P1 — ฟีเจอร์ที่เอกสารบอกว่ามี แต่โค้ดไม่มี
 
-7. **ไม่มี `Product` model ใน schema และไม่มี `app/api/products/`** — แต่:
-   - `app/products/page.tsx:23` `fetch('/api/products')` → 404 เสมอ (หน้า public พัง/ของว่าง)
-   - `app/dashboard/page.tsx` `fetch('/api/products')` + `fetch('/api/projects')` → ตัวเลข products = 0 เสมอ
-   - `frontend/lib/api.ts` มี `Products.*` และ `Dashboard.getStats()` → `GET /api/dashboard/stats` ก็ไม่มี
-   - README/CHANGELOG/RELEASE_NOTES โปรโมท "Products Module", `/api/products`, `/admin/products` → **ไม่มีจริง**
-8. **`frontend/` ทั้งโฟลเดอร์เป็น dead code** — Next.js App Router route จาก root `app/` เท่านั้น, ไม่มี import ใดอ้าง `@/frontend` (grep พบ 0) และ `Dockerfile` ก็ไม่ได้ COPY `frontend/` ไปด้วย → ซ้ำกับ `app/products`, `app/dashboard`, `app/page.tsx`
-9. **`PRODUCT_CMS_SETUP.sql` เพี้ยนจาก `prisma/schema.prisma`** — SQL ไม่มี `StaffMember`/`StaffRepo`/`SecretStore`/`AiAutoPost*`, และ `Page` ใน SQL ไม่มี `excerpt/sourceType/sourceRef`, `MenuItem` ไม่มี `showInSidebar`, `User` ไม่มี `mustChangePassword`, `Media` ไม่มี `storageProvider/storageKey` → ลูกค้าที่ใช้ SQL ตั้ง DB จะพัง
+7. ~~**ไม่มี `Product` model ใน schema และไม่มี `app/api/products/`** — แต่:~~ ✅ **แก้แล้ว (2026-10-10)**: ลบหน้า `app/products`, `app/dashboard` ที่เรียก API ไม่มี + ตัดคำโปรโมท Products ออกจาก CHANGELOG/RELEASE_NOTES + ปรับ `app/page.tsx` ให้ลิงก์เหลือของทำงานจริง
+8. ~~**`frontend/` ทั้งโฟลเดอร์เป็น dead code** — Next.js App Router route จาก root `app/` เท่านั้น, ไม่มี import ใดอ้าง `@/frontend` (grep พบ 0) และ `Dockerfile` ก็ไม่ได้ COPY `frontend/` ไปด้วย → ซ้ำกับ `app/products`, `app/dashboard`, `app/page.tsx`~~ ✅ **แก้แล้ว (2026-10-10)**: `git rm -r frontend/` (11 ไฟล์, 1,877 LOC) — ไม่มี import ใดอ้างถึง
+9. ~~**`PRODUCT_CMS_SETUP.sql` เพี้ยนจาก `prisma/schema.prisma`** — SQL ไม่มี `StaffMember`/`StaffRepo`/`SecretStore`/`AiAutoPost*`, และ `Page` ใน SQL ไม่มี `excerpt/sourceType/sourceRef`, `MenuItem` ไม่มี `showInSidebar`, `User` ไม่มี `mustChangePassword`, `Media` ไม่มี `storageProvider/storageKey` → ลูกค้าที่ใช้ SQL ตั้ง DB จะพัง~~ ✅ **แก้แล้ว (2026-10-10)**: regenerate จาก schema ผ่าน `prisma migrate diff` → เขียนทั้ง `prisma/migrations/20261010120000_init/migration.sql` + `PRODUCT_CMS_SETUP.sql` (12 ตาราง, indexes, FKs ครบ)
 
 ### P2 — Config / Dependency
 
@@ -110,10 +105,10 @@ THOTH/
 11. ⚠️ **ครึ่งปิด:** `.env.example` มี `APP_ENCRYPTION_KEY` แล้ว แต่ `.env.local` ยังไม่มี + ยังมีตัวแปรขยะเก่า (`AWS_*`, `SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `EXTENSIONS_DIR`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_BACKEND_URL`) → ยัง throw ตอนบันทึก automation config; **รอพี่ฆังสั่ง cleanup `.env.local`** (กฎห้ามแก้เอง)
 12. ✅ **ปิดแล้ว (2026-10-10):** ตัวแปรที่โค้ดใช้ครบใน `.env.example` แล้ว (`STORAGE_DRIVER`, `S3_*`, `LOCAL_UPLOAD_URL_BASE`, `APP_ENCRYPTION_KEY`, `AUTOMATION_CRON_SECRET`, `UPLOAD_RATE_LIMIT_*`)
 13. ✅ **ปิดแล้ว (2026-10-10):** ลบ orphan ออกจาก `.env.example` หมดแล้ว (`SMTP_*`, `GEMINI_API_KEY`, `GITHUB_API_TOKEN`, `LOG_LEVEL`, `SKIP_ENV_VALIDATION`, `AWS_*`, `EXTENSIONS_DIR`, `TEMPLATES_DIR`) และ `NEXT_PUBLIC_APP_URL`/`NEXT_PUBLIC_BACKEND_URL` → comment อ้างอิง `apps/web/.env.example`; `SESSION_SECRET` เว้นว่าง + กำชับ generate (เดิมเป็นค่าคงที่ตัวอย่าง = ปลอม session ได้)
-14. **`vercel.json` มี key ที่ไม่อยู่ใน schema ปัจจุบันของ Vercel** (เทียบ docs `vercel.com/docs/project-configuration` 2026-08-25): `env`, `nodeVersion`, `buildEnvironment` **ไม่ใช่ property ที่รองรับ** → ควรย้ายไป Project Settings / `.env`
-15. **Dependencies ที่ไม่ถูก import ที่ไหนเลย (ตรวจแล้ว 0 จุด):** `admin-lte`, `bootstrap`, `jquery`, `popper.js`, `@uiw/react-markdown-preview`, `@uiw/react-md-editor` (6 ตัว — editor จริงคือ `components/admin/rich-text-editor.tsx` ที่เขียนเองด้วย contentEditable)
-16. ✅ **ปิดแล้ว:** `npm run lint` ผ่าน — 0 errors / 20 warnings (ตรวจ 2026-10-09); CI ใน `.github/workflows/release.yml` ยังใช้ `continue-on-error: true`
-17. **ไม่มี `engines` ใน `package.json`** ทั้งที่ README ระบุ Node 20+
+14. ✅ **ปิดแล้ว (2026-10-10):** `vercel.json` สะอาดแล้ว — ไม่มี key `env`, `nodeVersion`, `buildEnvironment` (อ้าง docs vercel.com/docs/project-configuration 2026-08-25)
+15. ✅ **ปิดแล้ว (2026-10-10):** ตัด 6 deps ที่ไม่ใช้หมดแล้ว (`admin-lte`, `bootstrap`, `jquery`, `popper.js`, `@uiw/react-markdown-preview`, `@uiw/react-md-editor`) — `npm uninstall` + `npm ci` + `build` ผ่าน
+16. ✅ **ปิดแล้ว:** `npm run lint` ผ่าน — 0 errors / 20 warnings (ตรวจ 2026-10-09); CI `.github/workflows/release.yml` **เอา `continue-on-error: true` ออกแล้ว** (lint = 0 errors)
+17. ✅ **ปิดแล้ว (2026-10-10):** เพิ่ม `"engines": { "node": ">=20" }` ใน `package.json` + README อัปเดต Node 20+ ตรงกัน
 
 ### P3 — เอกสาร / ขยะ (จัดระเบียบแล้ว 2026-10-09)
 
@@ -210,7 +205,7 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 
 ## 7. สรุปสถานะ 1 บรรทัด
 
-> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = **129**; root Next **16.4.0**; apps/web build/tsc ผ่าน) · **ความปลอดภัย:** XSS sanitize ปิดครบ 2026-10-10 (root + `apps/web`; `normalizeUrl` เข้มขึ้น) + **login brute-force ปิดแล้ว (เฟส 1.4, 2026-10-10)**: buckets 2 ชั้น ต่อ IP + ต่อ account (`lib/security/login-limit.ts`), 429 + `Retry-After`, reset ต่อความสำเร็จ + **upload content-sniff (1.5, 2026-10-10):** `upload-guard.ts` ตรวจ magic bytes ตรง `file.type`, ตัด SVG ออกจาก allowlist, มี route-policy guard · **8.2 editor เสร็จรอบแรก (2026-10-10):** ขั้น 0–5 ครบ — Tiptap 3.31.4 + JSON block document + dual-write + migration (prod = 0 rows) + **cutover renderer** (`lib/content/{render-model,render-react}.ts` + สำเนา apps/web; render `contentJson` เป็น React element, fallback HTML+sanitize) — prod DB apply schema แล้ว; เหลือเฉพาะ long-term ลบ legacy (รอมติ) · **ยังไม่พร้อมผลิตเต็มตัว:** 1.8 ยังไม่ปิดครบ ("ตรวจเมื่อเรียกใช้"; ยังไม่ตรวจตอน startup — รอเกณฑ์ใหม่), ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = **151**; root Next **16.4.0**; apps/web build/tsc ผ่าน) · **ความปลอดภัย:** XSS sanitize ปิดครบ 2026-10-10 (root + `apps/web`; `normalizeUrl` เข้มขึ้น) + **login brute-force ปิดแล้ว (เฟส 1.4, 2026-10-10)**: buckets 2 ชั้น ต่อ IP + ต่อ account (`lib/security/login-limit.ts`), 429 + `Retry-After`, reset ต่อความสำเร็จ + **upload content-sniff (1.5, 2026-10-10):** `upload-guard.ts` ตรวจ magic bytes ตรง `file.type`, ตัด SVG ออกจาก allowlist, มี route-policy guard · **8.2 editor เสร็จรอบแรก (2026-10-10):** ขั้น 0–5 ครบ — Tiptap 3.31.4 + JSON block document + dual-write + migration (prod = 0 rows) + **cutover renderer** (`lib/content/{render-model,render-react}.ts` + สำเนา apps/web; render `contentJson` เป็น React element, fallback HTML+sanitize) — prod DB apply schema แล้ว; เหลือเฉพาะ long-term ลบ legacy (รอมติ) · **P1/P2 ส่วนใหญ่ปิดแล้ว (2026-10-10):** Products/HTML เสีย/Dead code ลบ, SQL regenerate, migrations baseline, deps ตัด, vercel clean, engines เพิ่ม, CI lint gate เปิด · **ยังไม่พร้อมผลิตเต็มตัว:** 1.8 ยังไม่ปิดครบ ("ตรวจเมื่อเรียกใช้"; ยังไม่ตรวจตอน startup — รอเกณฑ์ใหม่), 6.4 E2E Playwright ยังไม่ทำ, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

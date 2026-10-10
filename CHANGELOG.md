@@ -37,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Content Modules
 - **Projects Module** - Portfolio project management with galleries, demos, and tools
-- **Products Module** - Full product catalog with metadata and relationships
 - **Staff Module** - Team member profiles with skills, GitHub links, and portfolio
 - **Pages Module** - Dynamic page editor with slug-based routing
 - **Categories Module** - Hierarchical content organization
@@ -53,7 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Frontend & User Interface
 - **Public Frontend** - Beautiful landing page with feature showcase
-- **Product Listing Page** - Public product catalog browser
 - **Analytics Dashboard** - Statistics and quick actions
 - **Admin Console** - Full-featured content management interface with AdminLTE theme
 - **Responsive Design** - Mobile-friendly layouts across all pages
@@ -74,7 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Production Configuration** - next.config.ts optimized for performance and security
 
 #### API Routes
-- `GET /api/products` - List all products
 - `GET /api/projects` - List all projects
 - `GET /api/staff` - List team members
 - `GET /api/pages` - List pages

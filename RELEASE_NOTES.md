@@ -52,14 +52,13 @@ Read more about the developer's background and projects in [README.md](./README.
 
 #### Headless CMS Platform
 - **REST API** - Full-featured API for all content types
-- **Content Modules** - Projects, Products, Staff, Pages, Categories
+- **Content Modules** - Projects, Staff, Pages, Categories
 - **Media Management** - Asset library with S3 and local storage
 - **Navigation Builder** - Dynamic menu creation
 - **Admin Console** - Professional-grade content editor
 
 #### Frontend & Public Pages
 - **Landing Page** - Beautiful homepage with feature showcase
-- **Product Catalog** - Public product listing and browsing
 - **Analytics Dashboard** - Statistics and quick actions
 - **Responsive Design** - Mobile-friendly on all devices
 - **Light Theme** - High-contrast, accessible UI

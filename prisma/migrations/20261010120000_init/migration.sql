@@ -1,10 +1,4 @@
--- PRODUCT_CMS_SETUP.sql
--- Generated from prisma/schema.prisma (2026-10-10) — regenerate with:
---   npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script
--- For neon.tech or any PostgreSQL editor. Applies all 12 tables,
--- unique indexes, and foreign keys.
--- NOTE: this repo now ships prisma/migrations/ — preferred install is
---   npx prisma migrate deploy. This file is a static reference/export.-- CreateSchema
+-- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable

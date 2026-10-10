@@ -31,4 +31,6 @@ COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/postcss.config.mjs ./postcss.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push && npm run start"]
+# REQUIRED for existing DBs provisioned via db push:
+#   npx prisma migrate resolve --applied 20261010120000_init
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

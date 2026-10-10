@@ -54,22 +54,26 @@ The CMS intentionally does not treat database credentials as admin-editable cont
 
 ## Option 1: Docker Compose
 1. Review `docker-compose.yml`
-2. Change the default PostgreSQL password
+2. Set a strong `POSTGRES_PASSWORD` (URL-safe, e.g. `openssl rand -hex 24`) in your `.env` or host environment
 3. Start the stack:
 ```bash
 docker compose up -d --build
 ```
-4. Apply schema:
+4. Apply schema (first install on fresh DB):
 ```bash
-docker compose exec app npx prisma db push
+docker compose exec cms npx prisma migrate deploy
 ```
-5. Open:
+5. **For existing DBs previously provisioned via `db push`** — run once before the next deploy:
+```bash
+docker compose exec cms npx prisma migrate resolve --applied 20261010120000_init
+```
+6. Open:
 ```text
 http://localhost:3000/setup
 ```
 
 Notes:
-- the compose file uses local PostgreSQL for simple self-host installs
+- the compose file uses local PostgreSQL for simple self-host installs; service name is `cms`
 - the `extensions` directory is persisted as a Docker volume
 - ZIP extension upload stays disabled by default
 - the local storage adapter writes into `public/uploads` by default
@@ -80,16 +84,20 @@ Notes:
 npm install
 ```
 2. Configure production `.env.local`
-3. Sync schema:
+3. Sync schema (first install on fresh DB):
 ```bash
-npx prisma db push
+npx prisma migrate deploy
 npx prisma generate
 ```
-4. Build:
+4. **For existing DBs previously provisioned via `db push`** — run once before the next deploy:
+```bash
+npx prisma migrate resolve --applied 20261010120000_init
+```
+5. Build:
 ```bash
 npm run build
 ```
-5. Start:
+6. Start:
 ```bash
 npm run start
 ```

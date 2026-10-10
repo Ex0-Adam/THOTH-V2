@@ -23,7 +23,7 @@
 
 **สิ่งที่แยกจากกันชัดเจน:**
 
-- **CMS (root)** — ไม่ต้องรู้เรื่อง UI ของผู้ชมเลย: `Admin Console` 13 หน้า (`/admin/*`) · `API Routes` 27 ตัว (`/api/*`) · `proxy.ts` (middleware คุม `/admin`, `/login`, `/setup`) · `Prisma → PostgreSQL` · session แบบ signed (`SESSION_SECRET`)
+- **CMS (root)** — ไม่ต้องรู้เรื่อง UI ของผู้ชมเลย: `Admin Console` 15 หน้า (`/admin/*`) · `API Routes` 30 ตัว (`/api/*`) · `proxy.ts` (middleware คุม `/admin`, `/login`, `/setup`) · `Prisma → PostgreSQL` · session แบบ signed (`SESSION_SECRET`)
 - **Public Web (`apps/web`)** — หน้า server components เท่านั้น (`/`, `/projects`, `/products` → redirect, `/[slug]`) · ไม่มีโค้ด CMS · build เป็น standalone ของตัวเอง
 
 ---
@@ -38,8 +38,8 @@ flowchart LR
 
     subgraph CMS["THOTH CMS (Headless) — root"]
         ADMIN["ผู้ดูแล"] --> PROXY["proxy.ts<br/>middleware"]
-        PROXY --> CONSOLE["Admin Console 13 หน้า<br/>/admin/*"]
-        CONSOLE -- "write (cookie session)" --> API["API Routes 27 ตัว<br/>/api/*"]
+        PROXY --> CONSOLE["Admin Console 15 หน้า<br/>/admin/*"]
+        CONSOLE -- "write (cookie session)" --> API["API Routes 30 ตัว<br/>/api/*"]
         AUTH["Session<br/>signSessionToken"] -.-> GUARD
     end
 
@@ -71,7 +71,7 @@ flowchart LR
 npm ci
 npx prisma generate        # postinstall ถูก npm 12 block → รันเอง
 cp .env.example .env.local # แล้วเติม DATABASE_URL + SESSION_SECRET
-npx prisma db push         # sync schema (ไม่มี migrations folder)
+npx prisma migrate deploy   # apply migrations (มี prisma/migrations/ แล้ว)
 npm run dev                # http://localhost:3000
 ```
 
@@ -92,8 +92,8 @@ npm run dev
 # root (CMS)
 npm run dev            # dev server
 npm run build          # production build
-npm run lint           # eslint (baseline: 30 errors / 22 warnings จากของเดิม)
-npm test               # node --test tests/*.test.mjs (30 tests)
+npm run lint           # eslint (0 errors / 20 warnings)
+npm test               # node --test tests/*.test.mjs (129 tests)
 npx tsc --noEmit       # typecheck
 npm run scaffold:module -- --id=<id> --name=<ชื่อ>   # สร้างโครง extension
 
@@ -109,15 +109,15 @@ npm start              # node .next/standalone/server.js
 ```
 THOTH/
 ├── app/                  # CMS: หน้า admin + API routes + หน้า public เดิม
-│   ├── admin/            # 13 หน้า Admin Console
-│   ├── api/              # 27 route handlers
+│   ├── admin/            # 15 หน้า Admin Console
+│   ├── api/              # 30 route handlers
 │   └── [slug]/           # หน้า public เดิม (รอ cutover — ดู docs/SPLIT_HEADLESS_PLAN)
 ├── apps/web/             # Public Web UI (แยก deploy — ดูส่วน Architecture)
 ├── lib/                  # auth, prisma, storage, automation, security
 ├── components/           # admin components
 ├── modules/staff-member/ # module เดียวที่ wired แล้ว
-├── extensions/           # โครง extension (ยังไม่มี extension จริง)
-├── prisma/schema.prisma  # ไม่มี migrations/ — ใช้ db push
+├── extensions/           # โครง extension (มีตัวอย่าง hello-module)
+├── prisma/schema.prisma  # มี prisma/migrations/ — ใช้ migrate deploy
 ├── tests/                # route-policy + session (node:test)
 ├── proxy.ts              # Next 16 middleware
 └── docs/                 # MODULE_STANDARD, UPDATE_PLAN, SPLIT_HEADLESS_PLAN, ...
@@ -153,7 +153,7 @@ THOTH/
 
 ## Deploy
 
-- **Vercel** — `vercel.json` + root app (ตรวจสอบ key ที่ไม่ตรง schema ปัจจุบันก่อนใช้: `docs/UPDATE_PLAN_2026-10.md` ข้อ 14)
+- **Vercel** — `vercel.json` + root app (key ปัจจุบันตรง schema แล้ว — `docs/UPDATE_PLAN_2026-10.md` ข้อ 3.4 เสร็จ)
 - **Docker / self-host** — `Dockerfile` + `docker-compose.yml` (`output: "standalone"`), คู่มือ `docs/SELF_HOSTING.md`
 - **apps/web** — deploy แยกต่างหาก ตั้ง `NEXT_PUBLIC_THOTH_API_URL` ชี้ CMS ที่ใช้งาน
 
