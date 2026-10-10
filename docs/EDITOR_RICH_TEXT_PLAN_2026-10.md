@@ -1,6 +1,6 @@
 # Editor / Rich-text Plan (8.2) — Tiptap + JSON Block Document
 
-> สร้าง: **2026-10-10 โดย ฌอน (opencode)** · อัปเดตสถานะ: **2026-10-10 — อนุมัติแล้ว, กำลัง implement (ขั้น 0–3 เสร็จ; ขั้น 1 DB prod ยังไม่ apply)**
+> สร้าง: **2026-10-10 โดย ฌอน (opencode)** · อัปเดตสถานะ: **2026-10-10 — อนุมัติแล้ว, กำลัง implement (ขั้น 0–4 เสร็จ; ขั้น 1 DB prod ยังไม่ apply → ขั้น 4 ยังรันจริงไม่ได้)**
 > โครงงาน: THOTH `2.0.0-beta.1` · แผนแม่: `docs/UPDATE_PLAN_2026-10.md` (เฟส 8.2)
 
 ## สถานะความคืบหน้า (อัปเดต 2026-10-10)
@@ -11,7 +11,7 @@
 | ขั้น 1 (schema + dual-write) | 🟡 โค้ดเสร็จ, **DB ยังไม่ apply** | schema เพิ่ม `contentJson/contentVer` + dual-write ใน API routes + `PRODUCT_CMS_SETUP.sql` — prod DB รอคำสั่งพี่ (diff = add-only, ปลอดภัย) |
 | ขั้น 2 (editor Tiptap) | ✅ เสร็จ | `components/admin/tiptap-editor.tsx` (B/I/U/S, H1-3, P, lists, quote, hr, link, image, table suite, undo/redo, clear) + wire เข้า `app/admin/pages/page.tsx` (ส่ง `contentJson`) + `tests/page-input.test.mjs` (10 ตัว) — npm test 90/90, tsc 0, lint 0 err/20 warn, build exit 0 · validator เพิ่มโครงสร้างบังคับ nesting ตรง Tiptap schema (image = block, hardBreak = inline) |
 | ขั้น 3 (AI auto-post) | ✅ เสร็จ | `lib/automation/google-ai.ts` ขอ `contentJson` เพิ่มจาก AI (parse string/object) · `resolveCampaignPageContent` ใน `lib/content/page-input.ts` (JSON wins → validate → dual-write; HTML-only → `htmlToBlockDocument` backfill; JSON invalid → ไม่ทิ้งบทความ คืน HTML) · `service.ts` `runCampaign` บันทึก `contentJson/contentVer` — tests +3 (93/93), tsc 0, lint 0 err/20 warn, build exit 0 |
-| ขั้น 4 (migration) | ⬜ ยังไม่เริ่ม | |
+| ขั้น 4 (migration) | 🟡 สคริปต์เสร็จ, **ยังรันจริงไม่ได้** | `scripts/migrate-page-content-json.ts` — dry-run เป็นค่าเริ่มต้น, `--apply` ค่อยเขียน, `--limit N`; backfill `contentJson/contentVer` จาก `content` (HTML) ผ่าน `htmlToBlockDocument` — **ไม่แตะคอลัมน์ `content`**; อ่านไม่ได้ถ้าคอลัมน์ยังไม่ apply (รอขั้น 1 DB) · npm script `migrate:page-json` (ใช้ `node --env-file=.env.local`) — tsc 0, lint 0 err/20 warn, build exit 0 |
 | ขั้น 5 (cutover renderer) | ⬜ ยังไม่เริ่ม | |
 
 ---
