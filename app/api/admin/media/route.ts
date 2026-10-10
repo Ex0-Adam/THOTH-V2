@@ -2,8 +2,8 @@
 import { prisma } from '@/lib/prisma';
 import { getStorageAdapter } from '@/lib/storage';
 import { guardApiSession } from "@/lib/security/api-policy";
+import { inspectUpload } from '@/lib/security/upload-guard';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
 const MAX_SIZE = 10 * 1024 * 1024;
 
 export async function GET() {
@@ -31,17 +31,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
-    }
-
     if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'File too large' }, { status: 400 });
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const inspection = inspectUpload(file.type, buffer);
+    if (!inspection.allowed) {
+      return NextResponse.json({ error: inspection.error }, { status: 400 });
+    }
+
     const adapter = getStorageAdapter();
     const uploaded = await adapter.upload({
-      buffer: Buffer.from(await file.arrayBuffer()),
+      buffer,
       filename: file.name,
       contentType: file.type,
     });

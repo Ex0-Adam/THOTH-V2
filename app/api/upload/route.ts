@@ -3,8 +3,8 @@ import { getStorageAdapter } from '@/lib/storage';
 import { getCurrentUser } from '@/lib/auth';
 import { guardApiSession } from "@/lib/security/api-policy";
 import { checkRateLimit } from '@/lib/security/rate-limit';
+import { inspectUpload } from '@/lib/security/upload-guard';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
 const MAX_SIZE = 5 * 1024 * 1024;
 
 const UPLOAD_RATE_LIMIT_MAX = nonNegativeIntEnv('UPLOAD_RATE_LIMIT_MAX', 30);
@@ -53,18 +53,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
-    }
-
     if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const inspection = inspectUpload(file.type, buffer);
+    if (!inspection.allowed) {
+      return NextResponse.json({ error: inspection.error }, { status: 400 });
+    }
+
     const adapter = getStorageAdapter();
-    const bytes = await file.arrayBuffer();
     const uploaded = await adapter.upload({
-      buffer: Buffer.from(bytes),
+      buffer,
       filename: file.name,
       contentType: file.type,
     });
