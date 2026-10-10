@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { api, ApiHttpError } from "@/lib/api-client";
 import { ApiErrorState } from "@/components/api-error";
 import { NavLink, SidebarLink } from "@/components/nav-link";
+import { sanitizePageHtml } from "@/lib/content/sanitize";
 import type { MenuItem, Page, SiteConfig } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
