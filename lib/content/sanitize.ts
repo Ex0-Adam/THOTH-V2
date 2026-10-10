@@ -53,7 +53,11 @@ const DEFAULT_NON_TEXT_TAGS: string[] = ['style', 'script', 'noscript', 'iframe'
 export function normalizeUrl(url?: string) {
   if (!url || typeof url !== 'string') return undefined;
   const trimmed = url.trim();
-  if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) {
+  // Browsers ignore C0 controls/whitespace inside a scheme (e.g. "java\tscript:"),
+  // so compact before the scheme check to block obfuscated payloads.
+  const compact = trimmed.replace(/[\u0000-\u0020\u007f]+/g, '');
+  const prefix = compact.slice(0, 16).toLowerCase();
+  if (prefix.startsWith('javascript:') || prefix.startsWith('data:') || prefix.startsWith('vbscript:')) {
     return undefined;
   }
   return trimmed;

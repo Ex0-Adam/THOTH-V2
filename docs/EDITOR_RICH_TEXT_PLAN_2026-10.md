@@ -1,6 +1,6 @@
 # Editor / Rich-text Plan (8.2) — Tiptap + JSON Block Document
 
-> สร้าง: **2026-10-10 โดย ฌอน (opencode)** · อัปเดตสถานะ: **2026-10-10 — อนุมัติแล้ว, กำลัง implement (ขั้น 0–4 เสร็จ; ขั้น 1 DB prod ยังไม่ apply → ขั้น 4 ยังรันจริงไม่ได้)**
+> สร้าง: **2026-10-10 โดย ฌอน (opencode)** · อัปเดตสถานะ: **2026-10-10 — อนุมัติแล้ว, implement ครบทุกขั้น (0–5 เสร็จ); DB prod apply schema แล้ว (`prisma db push`, add-only) + migration dry-run = 0 rows**
 > โครงงาน: THOTH `2.0.0-beta.1` · แผนแม่: `docs/UPDATE_PLAN_2026-10.md` (เฟส 8.2)
 
 ## สถานะความคืบหน้า (อัปเดต 2026-10-10)
@@ -8,11 +8,11 @@
 | ขั้น | สถานะ | หมายเหตุ |
 | --- | --- | --- |
 | ขั้น 0 (deps + converter + validator + tests) | ✅ เสร็จ | Tiptap 3.31.4 ทุกตัว · `lib/content/{block-document,html-to-json,json-to-html}.ts` · `tests/block-document.test.mjs` (16 ตัว) — npm test 80/80 |
-| ขั้น 1 (schema + dual-write) | 🟡 โค้ดเสร็จ, **DB ยังไม่ apply** | schema เพิ่ม `contentJson/contentVer` + dual-write ใน API routes + `PRODUCT_CMS_SETUP.sql` — prod DB รอคำสั่งพี่ (diff = add-only, ปลอดภัย) |
+| ขั้น 1 (schema + dual-write) | ✅ เสร็จ | schema เพิ่ม `contentJson/contentVer` + dual-write ใน API routes + `PRODUCT_CMS_SETUP.sql` · **DB prod apply แล้ว 2026-10-10** (`prisma db push` — diff add-only 2 คอลัมน์, ไม่มี data loss; Prisma Client generate แล้ว) |
 | ขั้น 2 (editor Tiptap) | ✅ เสร็จ | `components/admin/tiptap-editor.tsx` (B/I/U/S, H1-3, P, lists, quote, hr, link, image, table suite, undo/redo, clear) + wire เข้า `app/admin/pages/page.tsx` (ส่ง `contentJson`) + `tests/page-input.test.mjs` (10 ตัว) — npm test 90/90, tsc 0, lint 0 err/20 warn, build exit 0 · validator เพิ่มโครงสร้างบังคับ nesting ตรง Tiptap schema (image = block, hardBreak = inline) |
 | ขั้น 3 (AI auto-post) | ✅ เสร็จ | `lib/automation/google-ai.ts` ขอ `contentJson` เพิ่มจาก AI (parse string/object) · `resolveCampaignPageContent` ใน `lib/content/page-input.ts` (JSON wins → validate → dual-write; HTML-only → `htmlToBlockDocument` backfill; JSON invalid → ไม่ทิ้งบทความ คืน HTML) · `service.ts` `runCampaign` บันทึก `contentJson/contentVer` — tests +3 (93/93), tsc 0, lint 0 err/20 warn, build exit 0 |
-| ขั้น 4 (migration) | 🟡 สคริปต์เสร็จ, **ยังรันจริงไม่ได้** | `scripts/migrate-page-content-json.ts` — dry-run เป็นค่าเริ่มต้น, `--apply` ค่อยเขียน, `--limit N`; backfill `contentJson/contentVer` จาก `content` (HTML) ผ่าน `htmlToBlockDocument` — **ไม่แตะคอลัมน์ `content`**; อ่านไม่ได้ถ้าคอลัมน์ยังไม่ apply (รอขั้น 1 DB) · npm script `migrate:page-json` (ใช้ `node --env-file=.env.local`) — tsc 0, lint 0 err/20 warn, build exit 0 |
-| ขั้น 5 (cutover renderer) | ⬜ ยังไม่เริ่ม | |
+| ขั้น 4 (migration) | ✅ เสร็จ (0 rows) | `scripts/migrate-page-content-json.ts` — dry-run เป็นค่าเริ่มต้น, `--apply` ค่อยเขียน, `--limit N`; backfill `contentJson/contentVer` จาก `content` (HTML) ผ่าน `htmlToBlockDocument` — **ไม่แตะคอลัมน์ `content`**; npm script `migrate:page-json` (ใช้ `node --env-file=.env.local`) · **รันกับ prod แล้ว 2026-10-10: rows needing backfill = 0** (ยังไม่มีหน้า legacy) |
+| ขั้น 5 (cutover renderer) | ✅ เสร็จ | `lib/content/{render-model,render-react}.ts` (root) + สำเนา self-contained ใน `apps/web/lib/content/` — render `contentJson` เป็น **React element** (allowlist-by-construction: unknown node/mark ถูกข้าม, URL re-normalize), ไม่มี `dangerouslySetInnerHTML` บนเส้น JSON; fallback HTML+sanitize เมื่อ JSON ไม่มี/ว่าง · wire `app/[slug]/page.tsx` + `apps/web/app/(page)/[slug]/page.tsx` · `apps/web/lib/types.ts` เพิ่ม `contentJson/contentVer` · `normalizeUrl` เข้มขึ้น (block scheme แบบมี whitespace/control คั่น) ทั้ง root + apps/web · `tests/block-renderer.test.mjs` (11 ตัว, รวม drift-guard root↔apps/web) — npm test 104/104, tsc 0 (root+apps/web), lint 0 err/20 warn, build exit 0 (root + apps/web) |
 
 ---
 
@@ -122,9 +122,9 @@ V1 — สอดคล้องกับ JSON output ของ Tiptap 3 (ProseMi
 14. `scripts/migrate-page-content-json.ts`: อ่านทุก `Page` ที่ `contentJson IS NULL` → `@tiptap/html` แปลง `content`→JSON → validate → เขียน backfill (dual-write) — idle-run (--dry-run) ก่อนจริง
 15. เขียนวิธี rollback (ดู §6)
 
-### ขั้น 5 — Cutover renderer (ขั้นนี้แยกเป็นอิสระ — ตามความพร้อม)
-16. `app/[slug]/page.tsx` + `apps/web/app/(page)/[slug]/page.tsx`: render จาก `contentJson` ผ่าน renderer (React element) แทน `dangerouslySetInnerHTML`; ยัง fallback `content` (HTML+sanitize) สำหรับหน้า legacy ที่ยังไม่มี JSON
-17. หลัง cutover ผ่านสักระยะ → เปิดใจกว้างเรื่องลบ `content` column + `rich-text-editor.tsx` + sanitize ของ render (ต้องมติใหม่)
+### ขั้น 5 — Cutover renderer (ขั้นนี้แยกเป็นอิสระ — ตามความพร้อม) — ✅ เสร็จ 2026-10-10
+16. `app/[slug]/page.tsx` + `apps/web/app/(page)/[slug]/page.tsx`: render จาก `contentJson` ผ่าน renderer (React element) แทน `dangerouslySetInnerHTML`; ยัง fallback `content` (HTML+sanitize) สำหรับหน้า legacy ที่ยังไม่มี JSON — **ทำแล้ว**: `lib/content/render-model.ts` (tree) + `render-react.ts` (`createElement`), สำเนาใน `apps/web/lib/content/` (split plan), `tests/block-renderer.test.mjs`
+17. หลัง cutover ผ่านสักระยะ → เปิดใจกว้างเรื่องลบ `content` column + `rich-text-editor.tsx` + sanitize ของ render (ต้องมติใหม่) — **ยังไม่ทำ (รอมติ)**
 
 ---
 

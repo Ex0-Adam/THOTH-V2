@@ -5,6 +5,7 @@ import { getSiteConfig } from "@/lib/site-config-data";
 import { getAllMenuItems, MenuItem } from "@/lib/menu-data";
 import { NavLink, SidebarLink } from "@/components/nav-link";
 import { sanitizePageHtml } from "@/lib/content/sanitize";
+import { renderBlockDocument } from "@/lib/content/render-react";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export default async function DynamicPage({ params }: PageProps) {
     config.navStyle === "fixed" ? "fixed top-0 left-0 right-0 z-50"
     : config.navStyle === "sticky" ? "sticky top-0 z-50"
     : "relative";
+
+  const richContent = renderBlockDocument(page.contentJson);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: config.bgColor, color: config.textColor, fontFamily: config.fontFamily }}>
@@ -92,7 +95,11 @@ export default async function DynamicPage({ params }: PageProps) {
                <h1 className="text-5xl" style={{ color: config.textColor }}>{page.title}</h1>
                <time className="text-[10px] font-bold opacity-30 mt-2 uppercase tracking-widest">{new Date(page.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}</time>
              </header>
-             <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: sanitizePageHtml(page.content) }} />
+             {richContent ? (
+               <div className="dynamic-content">{richContent}</div>
+             ) : (
+               <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: sanitizePageHtml(page.content) }} />
+             )}
           </article>
         </main>
       </div>

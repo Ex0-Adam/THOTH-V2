@@ -4,6 +4,7 @@ import { api, ApiHttpError } from "@/lib/api-client";
 import { ApiErrorState } from "@/components/api-error";
 import { NavLink, SidebarLink } from "@/components/nav-link";
 import { sanitizePageHtml } from "@/lib/content/sanitize";
+import { renderBlockDocument } from "@/lib/content/render-react";
 import type { MenuItem, Page, SiteConfig } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ export default async function DynamicPage({ params }: PageProps) {
       : config.navStyle === "sticky"
         ? "sticky top-0 z-50"
         : "relative";
+
+  const richContent = renderBlockDocument(page.contentJson);
 
   return (
     <div
@@ -126,7 +129,11 @@ export default async function DynamicPage({ params }: PageProps) {
                 })}
               </time>
             </header>
-            <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: sanitizePageHtml(page.content) }} />
+            {richContent ? (
+              <div className="dynamic-content">{richContent}</div>
+            ) : (
+              <div className="dynamic-content" dangerouslySetInnerHTML={{ __html: sanitizePageHtml(page.content) }} />
+            )}
           </article>
         </main>
       </div>

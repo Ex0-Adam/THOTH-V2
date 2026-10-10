@@ -6,6 +6,8 @@ export interface Page {
   title: string;
   slug: string;
   content: string;
+  contentJson?: unknown;
+  contentVer?: number;
   excerpt: string;
   sourceType: string;
   sourceRef: string | null;
