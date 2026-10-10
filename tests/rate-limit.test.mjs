@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   checkRateLimit,
   clearRateLimits,
+  MAX_ENTRIES,
   resetRateLimit,
 } from "../lib/security/rate-limit.ts";
 
@@ -87,4 +88,21 @@ test("invalid options fall back to defaults", () => {
   checkRateLimit(key, { limit: -1, windowMs: -1 });
   const result = checkRateLimit(key);
   assert.equal(result.allowed, true);
+});
+
+test("store growth is hard-capped for new buckets", async () => {
+  clearRateLimits();
+  const windowMs = 100;
+  for (let i = 0; i < MAX_ENTRIES; i++) {
+    checkRateLimit(`test:hc:${i}`, { limit: 1, windowMs });
+  }
+
+  const denied = checkRateLimit("test:hc:overflow", { limit: 1, windowMs });
+  assert.equal(denied.allowed, false, "new bucket must be refused when the store is full");
+  assert.ok(denied.retryAfterMs > 0);
+
+  await new Promise((resolve) => setTimeout(resolve, windowMs + 20));
+
+  const accepted = checkRateLimit("test:hc:after", { limit: 1, windowMs });
+  assert.equal(accepted.allowed, true, "pruned store must accept new buckets again");
 });

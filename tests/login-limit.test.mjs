@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clearRateLimits } from "../lib/security/rate-limit.ts";
+import { clearRateLimits, resetRateLimit } from "../lib/security/rate-limit.ts";
 import {
   checkLoginLimit,
   loginBucketKeys,
@@ -92,4 +92,31 @@ test("loginLimitConfig reads env (defaults when unset)", () => {
   const after = loginLimitConfig();
   assert.equal(after.accountLimit, 12);
   delete process.env.LOGIN_ACCOUNT_LIMIT_MAX;
+});
+
+test("IP-blocked attempts do not consume the account bucket", () => {
+  clearRateLimits();
+  const cfg = { ipLimit: 2, ipWindowMs: 60_000, accountLimit: 5, accountWindowMs: 60_000 };
+  const params = { ip: "10.0.0.9", username: "Tharn@Example.com" };
+  const keys = loginBucketKeys(params.ip, params.username);
+
+  assert.equal(checkLoginLimit(params, cfg).allowed, true);
+  assert.equal(checkLoginLimit(params, cfg).allowed, true);
+  assert.equal(checkLoginLimit(params, cfg).allowed, false, "IP bucket must block at the limit");
+
+  resetRateLimit(keys.ipKey);
+
+  // Reset the IP bucket before every attempt from here on so that only the
+  // account bucket can block. If the IP-blocked attempt had ticked the
+  // account bucket, only 2 of these 3 would be allowed (account 3, 4, 5).
+  for (let i = 0; i < 3; i++) {
+    resetRateLimit(keys.ipKey);
+    assert.equal(
+      checkLoginLimit(params, cfg).allowed,
+      true,
+      `account ${3 + i} must still fit — blocked attempt must not have ticked it`
+    );
+  }
+  resetRateLimit(keys.ipKey);
+  assert.equal(checkLoginLimit(params, cfg).allowed, false, "account bucket must block at the limit");
 });

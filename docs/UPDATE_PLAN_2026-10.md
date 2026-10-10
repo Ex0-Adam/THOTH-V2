@@ -1,7 +1,7 @@
 # แผนอัปเดต THOTH — ทุกภาคส่วน (เตรียมงาน)
 
 > จัดทำ: **2026-10-08 โดย ฌอน (opencode)** จากการตรวจสอบโค้ดจริงทั้งโปรเจกต์
-> สถานะเอกสาร (reconcile **2026-10-10** เทียบ `docs/FEATURE_MODULE_ROADMAP_2026-10.md` §0): **ทำแล้วบางส่วน** — เฟส 1 ทำครบในทางปฏิบัติ (✅ 1.1–1.6, 1.8 · ✅ 1.7 ผ่าน Core 8.1 sanitize (2026-10-10) · ✅ 1.4 login rate limit+lockout (2026-10-10) · ⚠️ 1.5 เหลือแค่ยืนยัน "ตรวจ content ซ้ำ")**, เฟส 2 เหลือเฉพาะงานที่ต้องเลือกทาง, เฟส 3 ทำ 3.1/3.3, เฟส 5 ทำทั้งหมด, เฟส 6.1 = `node --test` **113 tests**, เฟส 7 = มี repo แล้ว; **เฟส 2 (ทางเลือก), 4 ยังไม่เริ่ม** — งานที่เหลือยังรอพี่ฆังอนุมัติทุกข้อ
+> สถานะเอกสาร (reconcile **2026-10-10** เทียบ `docs/FEATURE_MODULE_ROADMAP_2026-10.md` §0): **ทำแล้วบางส่วน — เฟส 1 ยังไม่นับปิดครบ** (✅ 1.1–1.4, 1.6 · ✅ 1.7 ผ่าน Core 8.1 sanitize (2026-10-10) · ⚠️ 1.5 เหลือ "ตรวจ content ซ้ำ" ยังไม่ทำ · ⚠️ 1.8 เหลือ "ตรวจตอน startup" ยังไม่ทำ)**, เฟส 2 เหลือเฉพาะงานที่ต้องเลือกทาง, เฟส 3 ทำ 3.1/3.3, เฟส 5 ทำทั้งหมด, เฟส 6.1 = `node --test` **115 tests**, เฟส 7 = มี repo แล้ว; **เฟส 2 (ทางเลือก), 4 ยังไม่เริ่ม** — งานที่เหลือยังรอพี่ฆังอนุมัติทุกข้อ
 > แผน Core ระยะต่อไป (ความปลอดภัย/โครงสร้าง) อยู่ที่ `docs/FEATURE_MODULE_ROADMAP_2026-10.md` (เฟส 8–9) — **ยังไม่อนุมัติ implementation รายเฟส**
 > อ้างอิงปัญหา: ดู `AGENTS.md` ข้อ 3 (P0–P3)
 > ⚠️ กฎบังคับ: ห้ามเริ่มเฟสใดโดยไม่ได้รับอนุมัติ · ห้ามแก้ `.env.local` · ห้าม commit/push
@@ -17,7 +17,7 @@
 | `npm run build` | ✅ exit 0 |
 | `npm run lint` | ✅ 0 errors / 20 warnings (reconcile 2026-10-10; เดิม 30 errors / 22 warnings) |
 | git | ✅ repo (init 2026-10-09) — commit แรก `a6eeca1` · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (LAN) · **ไม่ push** |
-| การทดสอบ | ✅ **113 tests** ผ่าน (`node --test tests/*.test.mjs` — 9 ไฟล์); วัด 2026-10-08 = ไม่มีเลย |
+| การทดสอบ | ✅ **115 tests** ผ่าน (`node --test tests/*.test.mjs` — 12 ไฟล์); วัด 2026-10-08 = ไม่มีเลย |
 | API route files | 30 (`app/api/**/route.ts`) |
 | หน้า public พัง | ⚠️ **ยังไม่แก้** — `app/products/page.tsx:23` + `app/dashboard/page.tsx:20` เรียก `/api/products` ที่ไม่มีอยู่ (ไม่มี `app/api/products/`) |
 
@@ -35,10 +35,10 @@
 | 1.2 | ขยาย `proxy.ts` matcher ให้ครอบ `/api/*` ด้วย (หรือย้ายการตรวจไปฝั่ง handler ล้วน — เลือกทางเดียวให้ชัด) | `proxy.ts` | ✅ 2026-10-09 — ทั้งคู่: proxy matcher มี `/api/:path*` + handler-level guard |
 | 1.3 | เปลี่ยน session จาก `user.id` เปล่า → token ที่เซ็นด้วย `SESSION_SECRET` (HMAC หรือ JWT) + ตรวจ expiry ฝั่ง server | `lib/auth.ts`, `proxy.ts` | ✅ 2026-10-09 — `signSessionToken` (ขาด `SESSION_SECRET` → throw) |
 | 1.4 | เพิ่ม rate limit + lockout ที่ `POST /api/auth/login` (ตอนนี้ brute-force ได้ไม่จำกัด) | `app/api/auth/login/route.ts` + `lib/security/login-limit.ts` | ✅ 2026-10-10 — buckets 2 ชั้น (ต่อ IP + ต่อ account) บน `lib/security/rate-limit.ts` · env `LOGIN_RATE_LIMIT_MAX`/`WINDOW_MS` + `LOGIN_ACCOUNT_LIMIT_MAX`/`WINDOW_MS` (0 = ปิด, default 10/15min IP + 5/15min account) · 429 + `Retry-After` ก่อน verify · success reset bucket account · tests `login-limit.test.mjs` + route-policy guard |
-| 1.5 | `POST /api/upload`: ต้อง auth + จำกัดจำนวน/ความถี่ + ตรวจ content ซ้ำ | `app/api/upload/route.ts` | ⚠️ auth ✅ + **rate limit แล้ว 2026-10-09** (`lib/security/rate-limit.ts`, `tests/rate-limit.test.mjs`); "ตรวจ content ซ้ำ" ยังไม่ยืนยัน |
+| 1.5 | `POST /api/upload`: ต้อง auth + จำกัดจำนวน/ความถี่ + ตรวจ content ซ้ำ | `app/api/upload/route.ts` | ⚠️ auth ✅ + **rate limit แล้ว 2026-10-09** (`lib/security/rate-limit.ts`, `tests/rate-limit.test.mjs`); **"ตรวจ content ซ้ำ" ยังไม่ทำ/ไม่ยืนยัน** — รอพี่ฆังตัดสินว่าจำเป็นเป็น P0 หรือย้ายออกจาก scope (ตอนนี้ upload มีเฉพาะ guard+rate limit) |
 | 1.6 | `AUTOMATION_CRON_SECRET`: บังคับตั้งค่า (ถ้าว่าง → ปฏิเสธทุก request) + เพิ่มลง `.env.example` | `app/api/admin/automation/cron/route.ts`, `.env.example` | ✅ 2026-10-09 — `isCronAuthorized` fail-closed + key อยู่ใน `.env.example` แล้ว |
-| 1.7 | Sanitize HTML ก่อน render (`dangerouslySetInnerHTML` ใน `app/[slug]/page.tsx`) — ใช้ sanitizer ฝั่ง server ตอนบันทึก หรือตอน render | `app/[slug]/page.tsx` + จุดอื่นที่เจอ | ❌ ยังไม่ทำ — **ยกระดับเป็น Core เฟส 8.1** (`docs/FEATURE_MODULE_ROADMAP_2026-10.md`) — รอพี่ฆังตัดสินแนวทาง |
-| 1.8 | เพิ่ม `APP_ENCRYPTION_KEY` ลง `.env.example` + ตรวจตอน startup ว่ามีค่า (ตอนนี้ automation บันทึก key จะ throw) | `.env.example`, `lib/security/secrets.ts` | ✅ 2026-10-09 — อยู่ใน `.env.example` แล้ว |
+| 1.7 | Sanitize HTML ก่อน render (`dangerouslySetInnerHTML` ใน `app/[slug]/page.tsx`) – ใช้ sanitizer ฝั่ง server ตอนบันทึก หรือตอน render | `app/[slug]/page.tsx` + จุดอื่นที่เจอ | ✅ 2026-10-10 — สำเร็จผ่าน **Core เฟส 8.1** (sanitize-html allowlist + `normalizeUrl`) ใช้ตอนบันทึก (`app/api/pages` ×2) + ตอน render ทั้ง 2 ทาง (`app/[slug]` + `apps/web/[slug]`); tests `tests/xss-sanitization.test.mjs` ×5; dep ประกาศทั้ง root + `apps/web`; bug เก่า `cbe6635` (apps/web แทรก sanitizer ไม่ import – root tsconfig exclude `apps` → build พังเงียบ) แก้แล้ว |
+| 1.8 | เพิ่ม `APP_ENCRYPTION_KEY` ลง `.env.example` + ตรวจตอน startup ว่ามีค่า (ตอนนี้ automation บันทึก key จะ throw) | `.env.example`, `lib/security/secrets.ts` | ⚠️ **ทำแค่ครึ่งเดียว:** env อยู่ใน `.env.example` ✅ + throw เมื่อใช้ `encrypt/decryptSecret` ✅ (2026-10-09) แต่ **"ตรวจตอน startup" ยังไม่ทำ** — รอพี่ตัดสินพฤติกรรม (ถ้า throw ตอน startup จะทำให้ dev/prod ขึ้นไม่ได้เมื่อ env ยังไม่ถูกตั้งใน `.env.local`) · ยังไม่นับปิดเต็ม |
 
 **อนุมัติเฉพาะเฟส 1 ก่อน** แล้วค่อยไปเฟส 2 — เพราะ 1.1–1.3 เปลี่ยนพฤติกรรม auth ทั้งระบบ
 
@@ -96,7 +96,7 @@
 
 | # | งาน |
 | --- | --- |
-| 6.1 | ✅ ทำแล้ว (2026-10-09, นับซ้ำ 2026-10-10): ใช้ `node --test` (ไม่ใช่ Vitest) + script `test` ใน `package.json` — **113 tests ผ่าน** (12 ไฟล์: `block-document`, `block-renderer`, `cors-policy`, `cron-auth`, `extension-url-guard`, `login-limit`, `page-input`, `rate-limit`, `route-policy`, `session`, `template-policy`, `xss-sanitization`) |
+| 6.1 | ✅ ทำแล้ว (2026-10-09, นับซ้ำ 2026-10-10): ใช้ `node --test` (ไม่ใช่ Vitest) + script `test` ใน `package.json` — **115 tests ผ่าน** (12 ไฟล์: `block-document`, `block-renderer`, `cors-policy`, `cron-auth`, `extension-url-guard`, `login-limit`, `page-input`, `rate-limit`, `route-policy`, `session`, `template-policy`, `xss-sanitization`) |
 | 6.2 | Unit: `lib/auth`, `lib/security/secrets`, `lib/storage`, `lib/automation/helpers` |
 | 6.3 | Integration/API smoke: login, CRUD page/project พร้อม assert 401 เมื่อไม่มี session (พิสูจน์เฟส 1) |
 | 6.4 | E2E smoke (Playwright): `/` → `/login` → `/admin` → สร้าง Page → ดูหน้า public |

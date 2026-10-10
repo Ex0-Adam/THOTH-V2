@@ -68,15 +68,20 @@ export function checkLoginLimit(
   const { ipKey, accountKey } = loginBucketKeys(params.ip, params.username);
 
   const ip = checkRateLimit(ipKey, { limit: config.ipLimit, windowMs: config.ipWindowMs });
+  if (!ip.allowed) {
+    // Short-circuit on the IP bucket: do not tick the shared account bucket
+    // for attempts that are already blocked at the client level.
+    return { allowed: false, retryAfterMs: ip.retryAfterMs };
+  }
+
   const account = checkRateLimit(accountKey, {
     limit: config.accountLimit,
     windowMs: config.accountWindowMs,
   });
 
-  const allowed = ip.allowed && account.allowed;
   return {
-    allowed,
-    retryAfterMs: allowed ? 0 : Math.max(ip.retryAfterMs, account.retryAfterMs),
+    allowed: account.allowed,
+    retryAfterMs: account.allowed ? 0 : account.retryAfterMs,
   };
 }
 

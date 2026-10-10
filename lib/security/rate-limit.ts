@@ -15,7 +15,7 @@ const store = new Map<string, WindowEntry>();
 
 const DEFAULT_LIMIT = 60;
 const DEFAULT_WINDOW_MS = 60_000;
-const MAX_ENTRIES = 10_000;
+export const MAX_ENTRIES = 10_000;
 
 export interface RateLimitOptions {
   limit?: number;
@@ -54,6 +54,11 @@ export function checkRateLimit(
   if (!entry || now - entry.windowStart >= windowMs) {
     if (store.size >= MAX_ENTRIES && !store.has(key)) {
       pruneExpired(now, windowMs);
+      if (store.size >= MAX_ENTRIES) {
+        // Hard cap: even after pruning there is no room for a new bucket.
+        // Fail closed instead of growing the store without bound.
+        return { allowed: false, remaining: 0, retryAfterMs: windowMs };
+      }
     }
     store.set(key, { count: 1, windowStart: now });
     return { allowed: true, remaining: limit - 1, retryAfterMs: 0 };
