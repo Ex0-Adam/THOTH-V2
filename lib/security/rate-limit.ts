@@ -33,6 +33,11 @@ export function clearRateLimits(): void {
   store.clear();
 }
 
+/** Clears a single bucket (e.g. after a successful login). */
+export function resetRateLimit(key: string): void {
+  store.delete(key);
+}
+
 export function checkRateLimit(
   key: string,
   options: RateLimitOptions = {}

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   checkRateLimit,
   clearRateLimits,
+  resetRateLimit,
 } from "../lib/security/rate-limit.ts";
 
 test("allows requests up to the limit within a window", () => {
@@ -54,6 +55,21 @@ test("clearRateLimits resets the store", () => {
   clearRateLimits();
   const again = checkRateLimit(key, { limit: 1, windowMs: 60_000 });
   assert.equal(again.allowed, true);
+});
+
+test("resetRateLimit clears a single bucket", () => {
+  clearRateLimits();
+  const key = "test:reset-single";
+  checkRateLimit(key, { limit: 1, windowMs: 60_000 });
+  assert.equal(checkRateLimit(key, { limit: 1, windowMs: 60_000 }).allowed, false);
+
+  resetRateLimit(key);
+  assert.equal(checkRateLimit(key, { limit: 1, windowMs: 60_000 }).allowed, true);
+
+  const other = "test:reset-single-other";
+  checkRateLimit(other, { limit: 1, windowMs: 60_000 });
+  resetRateLimit(key);
+  assert.equal(checkRateLimit(other, { limit: 1, windowMs: 60_000 }).allowed, false);
 });
 
 test("limit 0 disables rate limiting", () => {

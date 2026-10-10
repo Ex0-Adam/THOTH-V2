@@ -100,6 +100,21 @@ test("session cookie is never set to a raw user id", () => {
   assert.deepEqual(violations, []);
 });
 
+test("login endpoint keeps brute-force protection (phase 1.4)", () => {
+  const loginRoute = readFileSync(path.join(API_DIR, "auth", "login", "route.ts"), "utf8");
+  assert.ok(loginRoute.includes("checkLoginLimit"), "POST /api/auth/login must call checkLoginLimit");
+  assert.match(
+    loginRoute,
+    /status:\s*429/,
+    "login must return 429 when rate-limited"
+  );
+  assert.match(
+    loginRoute,
+    /Retry-After/,
+    "login 429 must include Retry-After"
+  );
+});
+
 test("public page GET responses filter unpublished content", () => {
   const pagesList = readFileSync(path.join(API_DIR, "pages", "route.ts"), "utf8");
   assert.ok(pagesList.includes("isPublished: true"), "GET /api/pages must filter drafts");
