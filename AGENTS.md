@@ -14,7 +14,7 @@
 | ชื่อ | `thoth` (branding ในโค้ด/README ยังเขียน "Micro Headless CMS" / "Micro Headless-CMS-Product") |
 | เวอร์ชัน | `2.0.0-beta.1` (bump จาก 1.0.0-beta.1 เมื่อ 2026-10-09; release เดิม: 11 เม.ย. 2026) |
 | ชนิด | Headless CMS + Admin Console (root) + public web แยกที่ `apps/web/` — ยังอยู่ monorepo เดียว (ยังไม่ cutover หน้า public เดิม) |
-| Stack | Next.js **16.2.0**, React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
+| Stack | Next.js **16.4.0** (root; `apps/web` ยัง 16.2.0), React **19.2.4**, TypeScript 5, Tailwind CSS **4**, Prisma **6.19.x** → **PostgreSQL** |
 | ที่เก็บไฟล์ | `output: 'standalone'` (Docker/self-host) + `vercel.json` (Vercel) |
 | Git | **มี repo แล้ว (init 2026-10-09):** commit แรก `a6eeca1` (164 ไฟล์) · remote `origin` (GitHub — พี่ฆัง push เอง) + `gitea` (192.168.1.200:3000) · **บันทึกลงดิสแล้ว → ไม่ต้อง push ไป GITEA** (คำสั่งพี่ฆัง 2026-10-09) |
 | Vercel | CLI 60.1.3 login **`ex0-adam`** (team `adam-project`) · project **`thoth-v2`** (id `prj_Prcs7H2WKxPNld0b60Zp9XnQNSYl`) **deploy แล้ว** — prod live **`https://thoth-v2.vercel.app`** (ผู้ deploy = ex0-adam; สุดท้าย redeploy 2026-10-09) · ไม่มี `.vercel/` ลิงก์ใน repo (link อยู่ `/tmp/opencode/vercel-thoth`) · **env บน project (Secret — อ่านค่าผ่าน CLI/API ไม่ได้):** `DATABASE_URL` `PRISMA_DATABASE_URL` `POSTGRES_URL` มาจาก Vercel integration store **`prisma-postgres-aero-compass`** (= product **Prisma Postgres**, region `sin1`, config `icfg_p9nGP4nSb3PHX3I8okzkkCup`) + **`SESSION_SECRET`** (เพิ่ม 2026-10-09, production+preview) · **prod DB apply schema แล้ว 2026-10-09** (`prisma db push` 12 ตาราง; DB ว่างเดิม) + seed admin `gridsdev.web@gmail.com` (`superadmin`, `mustChangePassword=false`) → **login verify = HTTP 200** · bootstrap prod = `{schemaReady:true, needsSetup:false}` · `vercel.json` อ้าง secret `@database_url`/`@app_url`/`@backend_url` = ของเก่า/ยังไม่ยืนยัน (env จริงมาจาก integration store) |
@@ -65,7 +65,7 @@ THOTH/
 ├── templates/              README + template.schema.json + ตัวอย่าง `aurora/` + lib/templates/* (registry/validator) ← P4
 ├── scripts/                create-extension.mjs, update-legal-content.ts
 ├── prisma/schema.prisma    ไฟล์เดียว ไม่มี prisma/migrations/
-├── docs/                   MODULE_STANDARD.md, TEMPLATE_STANDARD.md, SELF_HOSTING.md, UPDATE_PLAN_2026-10.md, SPLIT_HEADLESS_PLAN_2026-10.md, FEATURE_MODULE_ROADMAP_2026-10.md
+├── docs/                   MODULE_STANDARD.md, TEMPLATE_STANDARD.md, SELF_HOSTING.md, UPDATE_PLAN_2026-10.md, SPLIT_HEADLESS_PLAN_2026-10.md, FEATURE_MODULE_ROADMAP_2026-10.md, EDITOR_RICH_TEXT_PLAN_2026-10.md
 ├── public/, data/projects.json
 └── *.md ระดับ root         11 ไฟล์ (จัดระเบียบแล้ว 2026-10-09 — ดูข้อ 18)
 ```
@@ -90,7 +90,7 @@ THOTH/
 1. ✅ **ปิดแล้ว (ขั้น 0):** API เขียนข้อมูลทุก route มี `guardApiSession`/auth proof (ตรวจซ้ำ 2026-10-09: 23/27 route files มี guard; 4 ที่เหลือคือ auth/login, auth/logout, auth/setup, system/bootstrap ซึ่งเป็น allowlist + `tests/route-policy.test.mjs` บังคับทุก write)
 2. ✅ **ปิดแล้ว:** Session cookie ออกเป็น signed token ผ่าน `signSessionToken` + `SESSION_SECRET` (ขาดแล้ว throw — ตรวจ `lib/auth.ts`)
 3. ✅ **ปิดแล้ว:** `SESSION_SECRET` ถูกใช้จริงแล้ว (เดิม grep พบ 0 จุด)
-4. ⚠️ **เหลือ — HTML sanitization:** `dangerouslySetInnerHTML` กับ `page.content` ยังไม่ sanitize ทั้ง 2 จุด (`app/[slug]/page.tsx:94`, `apps/web/app/(page)/[slug]/page.tsx:128`) — คนนอกเขียน content ไม่ได้แล้ว (เขียนผ่าน session เท่านั้น) แต่ **admin ที่ถูกบุกรุกหรือ XSS ข้ามpath ยังยิงสคริปต์หน้า public ได้** → รอพี่ฆังตัดสินเรื่อง sanitizer
+4. ✅ **ปิดแล้ว (2026-10-10):** HTML sanitization — `lib/content/sanitize.ts` (allowlist + `normalizeUrl`) ใช้ตอนบันทึก (`app/api/pages` ×2) + ตอน render ทั้ง 2 ทาง (`app/[slug]/page.tsx:95`, `apps/web/app/(page)/[slug]/page.tsx:129`); dep `sanitize-html@^2.18.0` ประกาศทั้ง root และ `apps/web`; พบ+แก้ bug เก่า: commit `cbe6635` แทรก `sanitizePageHtml` ที่ `apps/web` โดยไม่ได้ import/dep → `apps/web` build พังเงียบ (root tsconfig exclude `apps`) — แก้แล้ว (sanitizer แยกของ `apps/web`) + tests 5 ตัว (`tests/xss-sanitization.test.mjs`)
 5. ✅ **ปิดแล้ว:** cron ใช้ `isCronAuthorized` และไม่มี fail-open (`return true`) แล้ว
 6. ✅ **ปิดแล้ว:** `app/api/upload/route.ts` มี `guardApiSession` + **rate limit** (ใหม่ 2026-10-09): `lib/security/rate-limit.ts` (in-memory fixed-window) · บัคเก็ตต่อ user/IP · default 30 req/min · env `UPLOAD_RATE_LIMIT_MAX` / `UPLOAD_RATE_LIMIT_WINDOW_MS` (0 = ปิด) · ตอบ 429 + `Retry-After` · tests 7 ตัวใน `tests/rate-limit.test.mjs`
 
@@ -164,6 +164,8 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 | แผนอัปเดตถัดไป | **`docs/UPDATE_PLAN_2026-10.md`** (7 เฟส) ← สร้างพร้อมไฟล์นี้ (reconcile 2026-10-10) |
 | แผนแยกส่วน core/หน้าเว็บ | **`docs/SPLIT_HEADLESS_PLAN_2026-10.md`** (ขั้น A–E) ← สร้าง 2026-10-08 · ขั้น 0/A/B/C แล้ว, D/E ยังไม่เริ่ม |
 | **แผน Core ระยะต่อไป (8–9)** | **`docs/FEATURE_MODULE_ROADMAP_2026-10.md`** ← เสนอโดยอัล/ธาร 2026-10-10 (พี่ฆังรับทราบทิศทาง) — Core-only + readiness gate; **ยังไม่อนุมัติ implementation รายเฟส** |
+| **8.1 sanitize (เสร็จ 2026-10-10)** | XSS ปิดครบ: `lib/content/sanitize.ts` (allowlist + `normalizeUrl`) ใช้ตอนบันทึก (API pages) + ตอน render ทั้ง 2 ทาง (`app/[slug]` + `apps/web/[slug]`) + tests 5 ตัว — dep `sanitize-html@^2.18.0` ประกาศแล้วทั้ง root และ `apps/web` (แยก sanitizer ของตัวเองตาม split plan) |
+| **8.2 editor (กำลัง implement 2026-10-10)** | **`docs/EDITOR_RICH_TEXT_PLAN_2026-10.md`** ← มติพี่: **Tiptap 3.31.4** + **JSON block document** + dual-write ชั่วคราว + AI JSON+converter fallback — อนุมัติแล้ว; **ขั้น 0 เสร็จ** (deps/converter/validator/tests 80) + **ขั้น 1 โค้ดเสร็จ** (schema + dual-write, DB prod ยังไม่ apply) + **ขั้น 2 เสร็จ** (editor Tiptap `components/admin/tiptap-editor.tsx` + wire `app/admin/pages` + validator บังคับ nesting + tests 90/90) + **ขั้น 3 เสร็จ** (AI auto-post dual-write: `google-ai.ts` + `resolveCampaignPageContent` + `runCampaign`, tests 93/93; ขั้น 4–5 ยังไม่เริ่ม) |
 | Marketplace link (P2) | `SiteConfig.marketplaceUrl` · `app/admin/marketplace/page.tsx` · `NEXT_PUBLIC_MARKETPLACE_URL` · prod: `https://micro-marketplace-iota.vercel.app` |
 | Env ตัวอย่าง | `.env.example` (เรียบร้อย 2026-10-10 — ข้อ 10/12/13 ปิดแล้ว, ข้อ 11 เหลือรอ cleanup `.env.local`) |
 
@@ -201,11 +203,21 @@ npm run lint         # ต้อง exit 0 และไม่มี errors (ต�
 
 ### ยังแยก/รอคำสั่ง (ไม่เกี่ยวกับนโยบาย Project)
 
-- **HTML sanitization** ของ `page.content` ก่อนแสดงผลสาธารณะ (ยัง `dangerouslySetInnerHTML` ไม่ sanitize ทั้ง 2 จุด) — รอพี่ฆังตัดสิน
 - **Cutover ถอดหน้า public เดิมออกจาก CMS** = ขั้น D ของ `docs/SPLIT_HEADLESS_PLAN_2026-10.md` — ยังไม่ทำ
+- **Long-term:** ลบ legacy `rich-text-editor.tsx` / `content` column ของ Page / sanitizer ฝั่ง render — ตามแผน 8.2 (`docs/EDITOR_RICH_TEXT_PLAN_2026-10.md` §5 ขั้น 5) หลัง migration ถึงจุดที่มั่นใจ — ยังไม่มีมติ
 
 ---
 
 ## 7. สรุปสถานะ 1 บรรทัด
 
-> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = 59) แต่**ยังไม่พร้อมผลิตเต็มตัว:** HTML sanitization ยังไม่มี, ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+> **Prod ขึ้นแล้ว (2026-10-09):** `thoth-v2.vercel.app` — schema apply (Prisma Postgres) + seed admin + `SESSION_SECRET` → **login HTTP 200** · โค้ด build/typecheck/tests ผ่าน (npm test = **93**; root Next **16.4.0**) · **ความปลอดภัย:** XSS sanitize ปิดครบ 2026-10-10 (root + `apps/web`) · **8.2 editor อนุมัติแล้ว (2026-10-10):** ขั้น 0 เสร็จ (Tiptap 3.31.4 + converter/validator + tests), ขั้น 1 โค้ดเสร็จ แตะ prod DB รอพี่สั่ง, **ขั้น 2 เสร็จ** (editor Tiptap ใช้ใน admin/pages + validator บังคับ nesting), **ขั้น 3 เสร็จ** (AI auto-post dual-write) · **ยังไม่พร้อมผลิตเต็มตัว:** ฟีเจอร์ Products ที่โฆษณาไม่มีอยู่จริง, push ยังค้าง (gitea ปฏิเสธสิทธิ์) — ให้ถือ `docs/UPDATE_PLAN_2026-10.md` เป็นแผนงานหลัก, แยกส่วนเว็บตาม `docs/SPLIT_HEADLESS_PLAN_2026-10.md` (ทำถึงขั้น C), เอกสาร root จัดระเบียบแล้ว (11 ไฟล์, 2026-10-09)
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

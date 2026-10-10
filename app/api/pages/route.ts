@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardApiSession } from "@/lib/security/api-policy";
 import { getCurrentUser } from "@/lib/auth";
-import { sanitizePageHtml } from "@/lib/content/sanitize";
+import { resolvePageContent } from "@/lib/content/page-input";
 
 // GET: ดึงหน้าเพจ (ผู้ไม่ล็อกอินเห็นเฉพาะที่ publish แล้ว)
 export async function GET() {
@@ -24,13 +24,20 @@ export async function POST(req: Request) {
   if (denied) return denied;
   try {
     const body = await req.json();
-    const { title, slug, content, isPublished } = body;
+    const { title, slug, isPublished } = body;
+
+    const resolved = resolvePageContent(body);
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
 
     const page = await prisma.page.create({
       data: {
         title,
         slug,
-        content: sanitizePageHtml(content),
+        content: resolved.data.content,
+        contentJson: resolved.data.contentJson ?? undefined,
+        contentVer: resolved.data.contentVer ?? 1,
         isPublished: isPublished ?? true,
       },
     });

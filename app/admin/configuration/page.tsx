@@ -41,10 +41,6 @@ export default function ConfigurationPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
-
   async function fetchConfig() {
     setLoading(true);
     try {
@@ -71,6 +67,10 @@ export default function ConfigurationPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -50,7 +50,7 @@ const DEFAULT_ALLOWED_ATTRIBUTES: sanitizeHtml.IOptions['allowedAttributes'] = {
 
 const DEFAULT_NON_TEXT_TAGS: string[] = ['style', 'script', 'noscript', 'iframe', 'object', 'embed', 'form', 'input', 'button'];
 
-function normalizeUrl(url?: string) {
+export function normalizeUrl(url?: string) {
   if (!url || typeof url !== 'string') return undefined;
   const trimmed = url.trim();
   if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) {
@@ -68,8 +68,9 @@ export const HTML_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     a: (tagName, attribs) => {
       const href = normalizeUrl(attribs.href);
       if (!href) {
-        const { href: _h, ...rest } = attribs as Record<string, unknown>;
-        return { tagName: 'span', attribs: rest as sanitizeHtml.Attributes } as sanitizeHtml.Tag;
+        const rest: sanitizeHtml.Attributes = { ...attribs };
+        delete rest.href;
+        return { tagName: 'span', attribs: rest } as sanitizeHtml.Tag;
       }
       return {
         tagName: 'a',

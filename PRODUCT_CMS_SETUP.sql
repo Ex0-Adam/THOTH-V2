@@ -77,7 +77,12 @@ CREATE TABLE IF NOT EXISTS "Page" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
-    "content" TEXT NOT NULL DEFAULT '',
+    "content" TEXT NOT NULL DEFAULT '', -- LEGACY HTML (8.2 keeps during migration)
+    "contentJson" JSONB,               -- 8.2: JSON block document {version, doc}
+    "contentVer" INTEGER NOT NULL DEFAULT 1, -- 8.2: block document version
+    "excerpt" TEXT NOT NULL DEFAULT '',
+    "sourceType" TEXT NOT NULL DEFAULT 'manual',
+    "sourceRef" TEXT,
     "isPublished" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

@@ -1,6 +1,8 @@
 ﻿import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { computeNextDailyRun, slugify, stripHtml } from './helpers';
 import { generateDailyContent, getGoogleAiStudioApiKey } from './google-ai';
+import { resolveCampaignPageContent } from '@/lib/content/page-input';
 
 function uniqueSlug(base: string, suffix = 0) {
   return suffix === 0 ? base : `${base}-${suffix}`;
@@ -145,11 +147,17 @@ export async function runCampaign(id: string) {
   const slug = await resolveUniqueSlug(`${campaign.slugPrefix}-${generation.slugHint}`);
   const excerpt = generation.excerpt || stripHtml(generation.contentHtml).slice(0, 180);
 
+  // Dual-write: prefer the AI-returned JSON document; fall back to converting
+  // the returned HTML so contentJson is populated for the rich-text renderer.
+  const contentResolved = resolveCampaignPageContent(generation.contentHtml, generation.contentJson);
+
   const page = await prisma.page.create({
     data: {
       title: generation.title,
       slug,
-      content: generation.contentHtml,
+      content: contentResolved.content,
+      contentJson: contentResolved.contentJson as Prisma.InputJsonValue | undefined,
+      contentVer: contentResolved.contentVer,
       excerpt,
       isPublished: campaign.publishAsPublished,
       sourceType: 'ai-auto-post',

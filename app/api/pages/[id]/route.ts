@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardApiSession } from "@/lib/security/api-policy";
-import { sanitizePageHtml } from "@/lib/content/sanitize";
+import { resolvePageContent } from "@/lib/content/page-input";
 import { getCurrentUser } from "@/lib/auth";
 
 // GET: ดึงข้อมูลหน้าเพจ (รองรับทั้ง ID และ Slug; ผู้ไม่ล็อกอินเห็นเฉพาะที่ publish แล้ว)
@@ -39,14 +39,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, slug, content, isPublished } = body;
+    const { title, slug, isPublished } = body;
+
+    const resolved = resolvePageContent(body);
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
 
     const page = await prisma.page.update({
       where: { id },
       data: {
         title,
         slug,
-        content: sanitizePageHtml(content),
+        content: resolved.data.content,
+        contentJson: resolved.data.contentJson ?? undefined,
+        contentVer: resolved.data.contentVer ?? undefined,
         isPublished,
       },
     });

@@ -12,10 +12,6 @@ export default function MarketplacePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    void Promise.resolve().then(fetchConfig);
-  }, []);
-
   async function fetchConfig() {
     setLoading(true);
     try {
@@ -29,6 +25,10 @@ export default function MarketplacePage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchConfig);
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

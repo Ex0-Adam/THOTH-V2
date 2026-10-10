@@ -93,7 +93,9 @@ model Page {
   id          String   @id @default(uuid())
   title       String
   slug        String   @unique
-  content     String   @default("")
+  content     String   @default("") // LEGACY HTML — เก็บไว้ตลอด migration (8.2), ตัดทีหลัง
+  contentJson Json?    // 8.2: JSON block document versioned {version, doc} — valid โดย lib/content/block-document.ts
+  contentVer  Int      @default(1) // 8.2: version ของ block document (ปัจจุบัน = 1)
   excerpt     String   @default("")
   sourceType  String   @default("manual")
   sourceRef   String?

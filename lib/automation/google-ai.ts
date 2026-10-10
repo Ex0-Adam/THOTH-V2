@@ -5,6 +5,7 @@ type GeneratedContent = {
   title: string;
   excerpt: string;
   contentHtml: string;
+  contentJson?: string | Record<string, unknown> | null;
   slugHint: string;
 };
 
@@ -31,8 +32,9 @@ export async function generateDailyContent(options: {
     options.systemPrompt?.trim() || 'You are an editorial assistant that writes useful, readable website articles.',
     `Topic focus: ${options.topic}`,
     `Publishing date: ${today}`,
-    'Return strict JSON with keys: title, excerpt, contentHtml, slugHint.',
+    'Return strict JSON with keys: title, excerpt, contentHtml, contentJson, slugHint.',
     'contentHtml must be clean HTML using headings, paragraphs, lists, and strong tags when useful.',
+    'contentJson must mirror the same article as a ProseMirror/Tiptap JSON document: start with {"type":"doc","content":[...]} using node types paragraph, heading, bulletList, orderedList, listItem, blockquote, codeBlock, image, text. Text nodes carry plain "text" and optional "marks". No markdown fences, no shell output.',
     'Avoid markdown fences. Avoid explanations outside the JSON object.',
     'Write a fresh article each time even if the topic stays the same.',
   ].join('\n\n');
@@ -73,10 +75,27 @@ export async function generateDailyContent(options: {
     throw new Error('AI response is missing required fields.');
   }
 
+  let contentJson: Record<string, unknown> | null = null;
+  if (parsed.contentJson) {
+    if (typeof parsed.contentJson === 'string') {
+      try {
+        const parsedJson = JSON.parse(cleanJsonPayload(parsed.contentJson));
+        if (parsedJson && typeof parsedJson === 'object' && !Array.isArray(parsedJson)) {
+          contentJson = parsedJson as Record<string, unknown>;
+        }
+      } catch {
+        contentJson = null;
+      }
+    } else if (typeof parsed.contentJson === 'object' && !Array.isArray(parsed.contentJson)) {
+      contentJson = parsed.contentJson as Record<string, unknown>;
+    }
+  }
+
   return {
     title: parsed.title,
     excerpt: parsed.excerpt || '',
     contentHtml: parsed.contentHtml,
+    contentJson,
     slugHint: parsed.slugHint || parsed.title,
   };
 }

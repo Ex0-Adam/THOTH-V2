@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import RichTextEditor from "@/components/admin/rich-text-editor";
+import TiptapEditor from "@/components/admin/tiptap-editor";
 
 type PageData = {
   id: string;
   title: string;
   slug: string;
   content: string;
+  contentJson?: unknown;
   isPublished: boolean;
   createdAt: string;
 };
@@ -17,6 +18,7 @@ const emptyForm = {
   title: "",
   slug: "",
   content: "",
+  contentJson: null as unknown,
   isPublished: true,
 };
 
@@ -92,6 +94,7 @@ export default function PagesAdmin() {
       title: page.title,
       slug: page.slug,
       content: page.content,
+      contentJson: page.contentJson ?? null,
       isPublished: page.isPublished,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -157,10 +160,11 @@ export default function PagesAdmin() {
                 </div>
               </div>
 
-              <RichTextEditor
+              <TiptapEditor
                 label="Page Content"
                 value={formData.content}
                 onChange={(content) => setFormData((current) => ({ ...current, content }))}
+                onJsonChange={(contentJson) => setFormData((current) => ({ ...current, contentJson }))}
                 placeholder="Write your page content here. You can create headings, paragraphs, bullet lists, quotes, and links just like a normal document editor."
                 minHeight={320}
               />
