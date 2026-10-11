@@ -1,27 +1,20 @@
-name: Release
+name: Release to GitHub
 
 on:
   push:
-    branches:
-      - master
-    paths:
-      - 'package.json'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., 2.0.0-beta.2)'
-        required: false
-        type: string
+    tags:
+      - 'v*'
+      - 'v*-*'  # Captures v2.0.0-beta.2, v2.0.0-rc.1, etc.
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build-and-release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -32,100 +25,39 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Determine version
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Typecheck
+        run: npx tsc --noEmit
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Extract Version from Tag
         id: version
         run: |
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION=$(node -p "require('./package.json').version")
-          fi
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
           echo "date=$(date -u +'%B %d, %Y')" >> $GITHUB_OUTPUT
           IS_PRERELEASE=$(echo "$VERSION" | grep -E '(beta|rc|alpha|dev)' && echo 'true' || echo 'false')
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
 
-      - name: Check if tag already exists
-        id: guard
-        run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          if git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "Tag $TAG already exists; skipping release."
-          else
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Install dependencies
-        if: steps.guard.outputs.should_release == 'true'
-        run: npm ci
-
-      - name: Generate Prisma Client
-        if: steps.guard.outputs.should_release == 'true'
-        run: npx prisma generate
-
-      - name: Run typecheck
-        if: steps.guard.outputs.should_release == 'true'
-        run: npx tsc --noEmit
-
-      - name: Run linter
-        if: steps.guard.outputs.should_release == 'true'
-        run: npm run lint
-
-      - name: Run tests
-        if: steps.guard.outputs.should_release == 'true'
-        run: npm test
-
-      - name: Build project
-        if: steps.guard.outputs.should_release == 'true'
-        run: npm run build
-
-      - name: Wait for Vercel preview deployment
-        id: vercel
-        if: steps.guard.outputs.should_release == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            let attempts = 0;
-            const maxAttempts = 30; // ~5 minutes
-            let deploymentUrl = null;
-
-            while (attempts < maxAttempts) {
-              const deployments = await github.rest.repos.listDeployments({
-                owner, repo, per_page: 5
-              });
-              const latestDeployment = deployments.data[0];
-              if (latestDeployment) {
-                const statuses = await github.rest.repos.listDeploymentStatuses({
-                  owner, repo,
-                  deployment_id: latestDeployment.id,
-                  per_page: 1
-                });
-                const status = statuses.data[0];
-                if (status && status.state === 'success') {
-                  deploymentUrl = status.target_url;
-                  console.log(`Vercel preview ready: ${deploymentUrl}`);
-                  core.setOutput('vercel_url', deploymentUrl);
-                  break;
-                } else if (status && (status.state === 'error' || status.state === 'failure')) {
-                  core.setFailed(`Vercel deployment failed: ${status.log_url}`);
-                  break;
-                }
-              }
-              attempts++;
-              await new Promise(r => setTimeout(r, 10000));
-            }
-            if (!deploymentUrl) {
-              console.log('Vercel preview not found or timed out; continuing.');
-            }
-
-      - name: Generate changelog
+      - name: Generate Changelog
         id: changelog
-        if: steps.guard.outputs.should_release == 'true'
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
+          TAG=${GITHUB_REF#refs/tags/}
           PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${TAG}$" | head -1 || true)
           if [[ -n "$PREV_TAG" ]]; then
             CHANGELOG=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD)
@@ -139,7 +71,6 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        if: steps.guard.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -171,35 +102,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Cross-repo sync requires a PAT with access to the target repos
-      # (secrets.GITHUB_TOKEN is scoped to THIS repo and cannot dispatch to others).
-      - name: Trigger Micro-Marketplace release
-        if: steps.guard.outputs.should_release == 'true'
-        continue-on-error: true
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          repository: Ex0-Adam/Micro-Marketplace
-          event-type: thoth-release
-          client-payload: '{"version": "${{ steps.version.outputs.version }}", "tag": "${{ steps.version.outputs.tag }}"}'
-
-      - name: Trigger THOTH-Documents release
-        if: steps.guard.outputs.should_release == 'true'
-        continue-on-error: true
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          repository: GridsDev/THOTH-Documents
-          event-type: thoth-release
-          client-payload: '{"version": "${{ steps.version.outputs.version }}", "tag": "${{ steps.version.outputs.tag }}"}'
-
       - name: Notify Release Success
-        if: steps.guard.outputs.should_release == 'true'
         run: |
           echo "✅ Release ${{ steps.version.outputs.tag }} created successfully!"
           echo "📋 Tag: ${{ steps.version.outputs.tag }}"
           echo "🟡 Pre-release: ${{ steps.version.outputs.is_prerelease }}"
           echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
-          if [[ -n "${{ steps.vercel.outputs.vercel_url }}" ]]; then
-            echo "🌐 Vercel Preview: ${{ steps.vercel.outputs.vercel_url }}"
-          fi
