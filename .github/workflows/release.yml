@@ -1,21 +1,30 @@
-name: Release to GitHub
+name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
-      - 'v*-*'  # Captures v2.0.0-beta.1, v2.0.0-rc.1, etc.
+    branches:
+      - main
+    paths:
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 2.0.0-beta.2)'
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  release:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,57 +32,159 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Run Linter
-        run: npm run lint
-
-      - name: Build Project
-        run: npm run build
-
-      - name: Extract Version from Tag
+      - name: Determine version
         id: version
         run: |
-          TAG=${{ github.ref }}
-          VERSION=${TAG#refs/tags/v}
-          IS_BETA_OR_RC=$(echo "$VERSION" | grep -E '(beta|rc|alpha|dev)' && echo 'true' || echo 'false')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "is_prerelease=$IS_BETA_OR_RC" >> $GITHUB_OUTPUT
-
-      - name: Generate Release Notes
-        id: release_notes
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          IS_PRERELEASE=${{ steps.version.outputs.is_prerelease }}
-          
-          if [ "$IS_PRERELEASE" = "true" ]; then
-            NOTES="## 🟡 Beta / Pre-Release\n\n**These are pre-release builds.** Use in staging/testing environments only.\n\nSee [RELEASE_NOTES.md](./RELEASE_NOTES.md) for detailed information.\n\nSee [CHANGELOG.md](./CHANGELOG.md) for version history."
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
           else
-            NOTES="## Production Release\n\nSee [RELEASE_NOTES.md](./RELEASE_NOTES.md) for features and changes.\n\nSee [CHANGELOG.md](./CHANGELOG.md) for full version history."
+            VERSION=$(node -p "require('./package.json').version")
           fi
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$NOTES" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          IS_PRERELEASE=$(echo "$VERSION" | grep -E '(beta|rc|alpha|dev)' && echo 'true' || echo 'false')
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run typecheck
+        run: npx tsc --noEmit
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build project
+        run: npm run build
+
+      - name: Wait for Vercel preview deployment
+        if: github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runId = context.runId;
+            
+            // Wait for Vercel deployment to complete
+            // Vercel creates deployment_status events
+            let attempts = 0;
+            const maxAttempts = 30; // 5 minutes
+            let deploymentUrl = null;
+            
+            while (attempts < maxAttempts) {
+              const deployments = await github.rest.repos.listDeployments({
+                owner,
+                repo,
+                environment: 'preview',
+                per_page: 5
+              });
+              
+              const latestDeployment = deployments.data[0];
+              if (latestDeployment) {
+                const statuses = await github.rest.repos.listDeploymentStatuses({
+                  owner,
+                  repo,
+                  deployment_id: latestDeployment.id,
+                  per_page: 1
+                });
+                
+                const status = statuses.data[0];
+                if (status.state === 'success') {
+                  deploymentUrl = status.target_url;
+                  console.log(`Vercel preview ready: ${deploymentUrl}`);
+                  core.setOutput('vercel_url', deploymentUrl);
+                  break;
+                } else if (status.state === 'error' || status.state === 'failure') {
+                  core.setFailed(`Vercel deployment failed: ${status.log_url}`);
+                  break;
+                }
+              }
+              attempts++;
+              await new Promise(r => setTimeout(r, 10000));
+            }
+            
+            if (!deploymentUrl) {
+              console.log('Vercel preview not found or timeout, continuing...');
+            }
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "$TAG" | head -1 || echo "")
+          
+          if [[ -n "$PREV_TAG" ]]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+          fi
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
-          body: ${{ steps.release_notes.outputs.notes }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## 📦 ${{ steps.version.outputs.tag }}
+            
+            **Release Date:** $(date -u +"%B %d, %Y")
+            
+            **Status:** ${{ steps.version.outputs.is_prerelease == 'true' && '🟡 PRE-RELEASE (Beta/RC)' || '✅ STABLE' }}
+            
+            ### 📝 Changes
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ### 🔗 Links
+            - **Full Changelog:** [CHANGELOG.md](./CHANGELOG.md)
+            - **Release Notes:** [RELEASE_NOTES.md](./RELEASE_NOTES.md)
+            - **Upgrade Guide:** [UPGRADE_GUIDE.md](./UPGRADE_GUIDE.md)
+            
+            ### ⚠️ Note
+            ${{ steps.version.outputs.is_prerelease == 'true' && 'This is a pre-release build. Use in staging/testing environments only.' || 'This is a stable production release.' }}
           prerelease: ${{ steps.version.outputs.is_prerelease }}
           draft: false
           files: |
             package.json
             CHANGELOG.md
             RELEASE_NOTES.md
+            UPGRADE_GUIDE.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Trigger Micro-Marketplace release
+        if: github.event_name == 'push'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: Ex0-Adam/Micro-Marketplace
+          event-type: thoth-release
+          client-payload: '{"version": "${{ steps.version.outputs.version }}", "tag": "${{ steps.version.outputs.tag }}"}'
+
+      - name: Trigger THOTH-Documents release
+        if: github.event_name == 'push'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: GridsDev/THOTH-Documents
+          event-type: thoth-release
+          client-payload: '{"version": "${{ steps.version.outputs.version }}", "tag": "${{ steps.version.outputs.tag }}"}'
+
       - name: Notify Release Success
         run: |
-          echo "✅ Release v${{ steps.version.outputs.version }} created successfully!"
-          echo "Tag: v${{ steps.version.outputs.version }}"
-          echo "Pre-release: ${{ steps.version.outputs.is_prerelease }}"
-          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+          echo "✅ Release ${{ steps.version.outputs.tag }} created successfully!"
+          echo "📋 Tag: ${{ steps.version.outputs.tag }}"
+          echo "🟡 Pre-release: ${{ steps.version.outputs.is_prerelease }}"
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+          if [[ -n "${{ steps.vercel_url }}" ]]; then
+            echo "🌐 Vercel Preview: ${{ steps.vercel_url }}"
+          fi

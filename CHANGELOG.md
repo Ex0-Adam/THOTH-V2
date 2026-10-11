@@ -5,6 +5,31 @@ All notable changes to Micro Headless CMS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-beta.2] - 2026-10-11
+
+### 🔒 Security
+- **Secret feature readiness check** — non-fatal `GET /api/system/bootstrap` → `features.secrets` + admin database card
+- **Login brute-force protection** — 2-tier buckets (per IP + per account) with short-circuit, 429 + `Retry-After`
+- **Upload content sniff** — magic bytes validation (JPEG/PNG/WebP/GIF) matching declared MIME; SVG removed from allowlist
+- **Rate limiting** — upload endpoints (30 req/min default, hard-cap 10k buckets) + login endpoints
+
+### 🧪 Testing
+- **151 automated tests** — `node --test tests/*.test.mjs` (14 files: secrets-crypto, automation-helpers, upload-guard, login-limit, secret-readiness, etc.)
+
+### 📚 Documentation
+- **UPDATE_PLAN** แพส 1–7 เสร็จสมบูรณ์ · **SELF_HOSTING/UPGRADE_GUIDE** อัปเดต migration baseline + `migrate deploy`
+- **README** sync: Node `>=20.9.0`, 151 tests, 15 admin pages, 30 API routes, extensions hello-module
+
+### 🏗️ Repository / Infrastructure
+- **Prisma Migrations baseline** — `prisma/migrations/20261010120000_init/` + `migration_lock.toml`
+- **Docker entrypoint** เปลี่ยนเป็น `prisma migrate deploy` · `docker-compose` require `POSTGRES_PASSWORD` (no default)
+- **CI lint gate** เปิดแล้ว (`continue-on-error` removed) · `engines.node: >=20.9.0`
+- **Dead code removed** — `frontend/` (1,877 LOC) + `/products`, `/dashboard` pages + product marketing copy
+
+### 🔧 Developer Experience
+- **New test files**: `secrets-crypto.test.mjs`, `automation-helpers.test.mjs`, `api-smoke.test.mjs` (opt-in)
+- **Release workflow** — GitHub Actions auto on version-bump to main, waits for Vercel preview
+
 ## [2.0.0-beta.1] - 2026-10-09
 
 ### 🔒 Security
