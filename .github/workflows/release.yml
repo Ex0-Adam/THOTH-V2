@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'package.json'
   workflow_dispatch:
@@ -42,65 +42,74 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +'%B %d, %Y')" >> $GITHUB_OUTPUT
           IS_PRERELEASE=$(echo "$VERSION" | grep -E '(beta|rc|alpha|dev)' && echo 'true' || echo 'false')
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
 
+      - name: Check if tag already exists
+        id: guard
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Tag $TAG already exists; skipping release."
+          else
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install dependencies
+        if: steps.guard.outputs.should_release == 'true'
         run: npm ci
 
       - name: Generate Prisma Client
+        if: steps.guard.outputs.should_release == 'true'
         run: npx prisma generate
 
       - name: Run typecheck
+        if: steps.guard.outputs.should_release == 'true'
         run: npx tsc --noEmit
 
       - name: Run linter
+        if: steps.guard.outputs.should_release == 'true'
         run: npm run lint
 
       - name: Run tests
+        if: steps.guard.outputs.should_release == 'true'
         run: npm test
 
       - name: Build project
+        if: steps.guard.outputs.should_release == 'true'
         run: npm run build
 
       - name: Wait for Vercel preview deployment
-        if: github.event_name == 'push'
+        id: vercel
+        if: steps.guard.outputs.should_release == 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const { owner, repo } = context.repo;
-            const runId = context.runId;
-            
-            // Wait for Vercel deployment to complete
-            // Vercel creates deployment_status events
             let attempts = 0;
-            const maxAttempts = 30; // 5 minutes
+            const maxAttempts = 30; // ~5 minutes
             let deploymentUrl = null;
-            
+
             while (attempts < maxAttempts) {
               const deployments = await github.rest.repos.listDeployments({
-                owner,
-                repo,
-                environment: 'preview',
-                per_page: 5
+                owner, repo, per_page: 5
               });
-              
               const latestDeployment = deployments.data[0];
               if (latestDeployment) {
                 const statuses = await github.rest.repos.listDeploymentStatuses({
-                  owner,
-                  repo,
+                  owner, repo,
                   deployment_id: latestDeployment.id,
                   per_page: 1
                 });
-                
                 const status = statuses.data[0];
-                if (status.state === 'success') {
+                if (status && status.state === 'success') {
                   deploymentUrl = status.target_url;
                   console.log(`Vercel preview ready: ${deploymentUrl}`);
                   core.setOutput('vercel_url', deploymentUrl);
                   break;
-                } else if (status.state === 'error' || status.state === 'failure') {
+                } else if (status && (status.state === 'error' || status.state === 'failure')) {
                   core.setFailed(`Vercel deployment failed: ${status.log_url}`);
                   break;
                 }
@@ -108,47 +117,48 @@ jobs:
               attempts++;
               await new Promise(r => setTimeout(r, 10000));
             }
-            
             if (!deploymentUrl) {
-              console.log('Vercel preview not found or timeout, continuing...');
+              console.log('Vercel preview not found or timed out; continuing.');
             }
 
       - name: Generate changelog
         id: changelog
+        if: steps.guard.outputs.should_release == 'true'
         run: |
           TAG="${{ steps.version.outputs.tag }}"
-          PREV_TAG=$(git tag --sort=-v:refname | grep -v "$TAG" | head -1 || echo "")
-          
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${TAG}$" | head -1 || true)
           if [[ -n "$PREV_TAG" ]]; then
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD)
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD)
           else
             CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
           fi
-          
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
+        if: steps.guard.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
           body: |
             ## 📦 ${{ steps.version.outputs.tag }}
-            
-            **Release Date:** $(date -u +"%B %d, %Y")
-            
+
+            **Release Date:** ${{ steps.version.outputs.date }}
+
             **Status:** ${{ steps.version.outputs.is_prerelease == 'true' && '🟡 PRE-RELEASE (Beta/RC)' || '✅ STABLE' }}
-            
+
             ### 📝 Changes
             ${{ steps.changelog.outputs.changelog }}
-            
+
             ### 🔗 Links
             - **Full Changelog:** [CHANGELOG.md](./CHANGELOG.md)
             - **Release Notes:** [RELEASE_NOTES.md](./RELEASE_NOTES.md)
             - **Upgrade Guide:** [UPGRADE_GUIDE.md](./UPGRADE_GUIDE.md)
-            
+
             ### ⚠️ Note
             ${{ steps.version.outputs.is_prerelease == 'true' && 'This is a pre-release build. Use in staging/testing environments only.' || 'This is a stable production release.' }}
           prerelease: ${{ steps.version.outputs.is_prerelease }}
@@ -161,30 +171,35 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Cross-repo sync requires a PAT with access to the target repos
+      # (secrets.GITHUB_TOKEN is scoped to THIS repo and cannot dispatch to others).
       - name: Trigger Micro-Marketplace release
-        if: github.event_name == 'push'
-        uses: peter-evans/repository-dispatch@v2
+        if: steps.guard.outputs.should_release == 'true'
+        continue-on-error: true
+        uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           repository: Ex0-Adam/Micro-Marketplace
           event-type: thoth-release
           client-payload: '{"version": "${{ steps.version.outputs.version }}", "tag": "${{ steps.version.outputs.tag }}"}'
 
       - name: Trigger THOTH-Documents release
-        if: github.event_name == 'push'
-        uses: peter-evans/repository-dispatch@v2
+        if: steps.guard.outputs.should_release == 'true'
+        continue-on-error: true
+        uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           repository: GridsDev/THOTH-Documents
           event-type: thoth-release
           client-payload: '{"version": "${{ steps.version.outputs.version }}", "tag": "${{ steps.version.outputs.tag }}"}'
 
       - name: Notify Release Success
+        if: steps.guard.outputs.should_release == 'true'
         run: |
           echo "✅ Release ${{ steps.version.outputs.tag }} created successfully!"
           echo "📋 Tag: ${{ steps.version.outputs.tag }}"
           echo "🟡 Pre-release: ${{ steps.version.outputs.is_prerelease }}"
           echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
-          if [[ -n "${{ steps.vercel_url }}" ]]; then
-            echo "🌐 Vercel Preview: ${{ steps.vercel_url }}"
+          if [[ -n "${{ steps.vercel.outputs.vercel_url }}" ]]; then
+            echo "🌐 Vercel Preview: ${{ steps.vercel.outputs.vercel_url }}"
           fi

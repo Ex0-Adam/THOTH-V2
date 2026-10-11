@@ -246,24 +246,6 @@ npx prisma migrate deploy
 
 ---
 
-## 📊 Hosting Compatibility
-
-### ✅ Fully Supported
-- **Vercel** — Recommended, zero-config, best performance
-- **Netlify** — Full Next.js 16 support
-- **Docker** — Self-hosted in any container platform
-
-### ✅ Supported with Configuration
-- **VPS/Self-Hosting** — Hostinger, DigitalOcean, Linode, AWS, Google Cloud, Azure
-- **Kubernetes** — Via Docker image
-- **Process Managers** — PM2, systemd
-
-### ❌ Not Supported
-- **Shared PHP Hosting** — cPanel, Bluehost, GoDaddy shared hosting
-- **Node.js <20.9.0** — Older versions not supported
-
----
-
 ## 📚 Documentation
 
 - **[README.md](./README.md)** - Project overview and setup
