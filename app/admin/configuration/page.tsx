@@ -191,7 +191,7 @@ export default function ConfigurationPage() {
               className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
               type="text"
               value={form.footerCopyright || ''}
-              placeholder="© 2024 Your Site"
+              placeholder="Powered by Microtronic © 2026 Microtronic Co., Ltd."
               onChange={(e) => setForm((s) => ({ ...s, footerCopyright: e.target.value }))}
             />
           </div>

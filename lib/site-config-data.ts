@@ -36,7 +36,7 @@ const defaults = {
   showSidebar: false,
   sidebarPosition: "left",
   // Zone 3 - Footer
-  footerCopyright: "© 2024 My Portfolio",
+  footerCopyright: "Powered by Microtronic © 2026 Microtronic Co., Ltd.",
   footerBgColor: "#1e293b",
   footerTextColor: "#94a3b8",
   // Communication

@@ -67,7 +67,7 @@ const defaultTheme: ThemeConfig = {
   layoutStyle: 'grid',
   showSidebar: false,
   sidebarPosition: 'left',
-  footerCopyright: '© 2024 My Portfolio',
+  footerCopyright: 'Powered by Microtronic © 2026 Microtronic Co., Ltd.',
   footerBgColor: '#f8fafc',
   footerTextColor: '#64748b',
 };

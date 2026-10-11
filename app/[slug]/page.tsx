@@ -114,7 +114,12 @@ export default async function DynamicPage({ params }: PageProps) {
                  </Link>
                ))}
             </nav>
-            <p className="text-xs font-black uppercase tracking-[0.3em] opacity-40" style={{ color: config.footerTextColor }}>{config.footerCopyright}</p>
+            <p className="text-xs font-black uppercase tracking-[0.3em] opacity-40" style={{ color: config.footerTextColor }}>
+              Powered by Microtronic{" "}
+              <a href="https://microtronic.biz/" target="_blank" rel="noopener noreferrer" className="underline hover:opacity-100">
+                © 2026 Microtronic Co., Ltd.
+              </a>
+            </p>
         </div>
       </footer>
     </div>

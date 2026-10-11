@@ -155,7 +155,12 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 flex justify-between items-center">
-            <p className="text-slate-400 text-sm">© 2026 Micro Headless CMS. All rights reserved.</p>
+            <p className="text-slate-400 text-sm">
+              Powered by Microtronic{" "}
+              <a href="https://microtronic.biz/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
+                © 2026 Microtronic Co., Ltd.
+              </a>
+            </p>
             <p className="text-slate-400 text-sm">Built with Next.js, TypeScript & PostgreSQL</p>
           </div>
         </div>
